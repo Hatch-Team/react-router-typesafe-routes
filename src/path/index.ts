@@ -1,2 +1,2 @@
-export * from "./PathProcessor";
-export * from "./path";
+export * from "./PathProcessor.js";
+export * from "./path.js";

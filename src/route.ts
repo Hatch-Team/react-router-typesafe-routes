@@ -1,9 +1,9 @@
 import { match, useLocation } from "react-router";
-import { PathParams, PathProcessor } from "./path";
-import { QueryProcessor } from "./query";
-import { HashProcessor } from "./hash";
-import { StateProcessor } from "./state";
-import { isDefined } from "./helpers";
+import { PathParams, PathProcessor } from "./path/index.js";
+import { QueryProcessor } from "./query/index.js";
+import { HashProcessor } from "./hash/index.js";
+import { StateProcessor } from "./state/index.js";
+import { isDefined } from "./helpers.js";
 
 type Location = ReturnType<typeof useLocation>;
 

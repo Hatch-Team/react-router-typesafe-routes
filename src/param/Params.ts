@@ -1,4 +1,4 @@
-import { Transformer } from "./Transformer";
+import { Transformer } from "./Transformer.js";
 
 export type OriginalParams<TTransformers extends Record<string, Transformer<unknown, unknown, unknown>>> = Params<
     TTransformers,

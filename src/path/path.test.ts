@@ -1,5 +1,5 @@
-import { path } from "./path";
-import { param } from "../param";
+import { path } from "./path.js";
+import { param } from "../param/index.js";
 import { assert, IsExact } from "conditional-type-checks";
 
 it("allows path without parameters", () => {

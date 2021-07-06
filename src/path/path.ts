@@ -1,7 +1,7 @@
 import { ExtractRouteParams, generatePath, match } from "react-router";
-import { PathParams, PathProcessor } from "./PathProcessor";
+import { PathParams, PathProcessor } from "./PathProcessor.js";
 import { Key, parse } from "path-to-regexp";
-import { OriginalParams, retrieve, RetrievedParams, store, Transformer } from "../param";
+import { OriginalParams, retrieve, RetrievedParams, store, Transformer } from "../param/index.js";
 
 export function path<TPath extends string>(
     path: TPath

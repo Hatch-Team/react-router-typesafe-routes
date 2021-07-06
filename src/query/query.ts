@@ -1,6 +1,6 @@
 import queryString, { ParseOptions, StringifyOptions } from "query-string";
-import { QueryProcessor } from "./QueryProcessor";
-import { OptionalTransformer, OriginalParams, retrieve, RetrievedParams, store, Transformer } from "../param";
+import { QueryProcessor } from "./QueryProcessor.js";
+import { OptionalTransformer, OriginalParams, retrieve, RetrievedParams, store, Transformer } from "../param/index.js";
 
 export type QueryOptions = StringifyOptions & ParseOptions;
 

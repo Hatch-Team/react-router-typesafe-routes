@@ -11,7 +11,9 @@
     "repository": "github:fenok/react-router-typesafe-routes",
     "license": "MIT",
     "author": "Leonid Fenko <fenok2112@gmail.com>",
+    "type": "module",
     "main": "dist/index.js",
+    "module": "dist/index.js",
     "types": "dist/index.d.ts",
     "sideEffects": false,
     "files": [
@@ -34,6 +36,8 @@
         "conditional-type-checks": "^1.0.5",
         "eslint": "^7.29.0",
         "eslint-config-prettier": "^8.3.0",
+        "eslint-import-resolver-node": "^0.3.4",
+        "eslint-plugin-import": "^2.23.4",
         "jest": "^27.0.4",
         "prettier": "^2.3.1",
         "react": "^17.0.2",

@@ -1,5 +1,5 @@
-import { query } from "./query";
-import { param } from "../param";
+import { query } from "./query.js";
+import { param } from "../param/index.js";
 import { assert, IsExact } from "conditional-type-checks";
 
 it("allows to use query params", () => {

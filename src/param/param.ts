@@ -1,5 +1,5 @@
-import { Optional, Transformer } from "./Transformer";
-import { assertString, optional } from "./helpers";
+import { Optional, Transformer } from "./Transformer.js";
+import { assertString, optional } from "./helpers.js";
 
 const stringTransformer: Optional<Transformer<string | number | boolean, string, string>> = optional({
     store: String,

@@ -1,4 +1,4 @@
-import { Optional, OptionalTransformer, OptionalTransformerWithDefault, Transformer } from "./Transformer";
+import { Optional, OptionalTransformer, OptionalTransformerWithDefault, Transformer } from "./Transformer.js";
 
 export function assertString(value: unknown): asserts value is string {
     if (typeof value !== "string") {

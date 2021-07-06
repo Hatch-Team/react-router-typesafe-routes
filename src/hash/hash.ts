@@ -1,4 +1,4 @@
-import { HashProcessor } from "./HashProcessor";
+import { HashProcessor } from "./HashProcessor.js";
 
 export function hash(): HashProcessor<string, string>;
 export function hash<T extends readonly string[]>(...values: T): HashProcessor<T[number], T[number] | "">;

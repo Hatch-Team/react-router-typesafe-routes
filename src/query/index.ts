@@ -1,2 +1,2 @@
-export * from "./QueryProcessor";
-export * from "./query";
+export * from "./QueryProcessor.js";
+export * from "./query.js";

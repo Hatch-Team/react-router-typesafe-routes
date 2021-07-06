@@ -1,4 +1,4 @@
-import { hash } from "./hash";
+import { hash } from "./hash.js";
 import { assert, IsExact } from "conditional-type-checks";
 
 it("allows to specify hash", () => {
