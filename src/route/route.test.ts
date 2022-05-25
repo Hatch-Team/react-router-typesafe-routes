@@ -3,11 +3,12 @@ import { generatePath } from "react-router";
 import { stringParser } from "../parser/stringParser";
 
 it("works", () => {
-    const testRoute = route("test/:id", { path: { param: stringParser }, query: { idd: stringParser } });
+    const testRoute = route("test/:id", { path: { id: stringParser }, query: { idi: stringParser } });
     const fooRoute = route("foo", { path: { param2: stringParser }, children: { testRoute } });
     const barRoute = route("bar", { path: { param3: stringParser }, children: { fooRoute } });
 
-    expect(barRoute.fooRoute.path).toEqual("bar/foo/test/:id");
+    expect(barRoute.fooRoute.testRoute.path).toEqual("bar/foo/test/:id");
+    expect(barRoute.fooRoute.testRoute.build({ id: "1", param2: "2", param3: "1" })).toEqual("bar/foo/test/1");
 });
 
 it("generates", () => {

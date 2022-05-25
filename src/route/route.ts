@@ -1,11 +1,38 @@
-import { Parser } from "../parser/parser";
-import { stringParser } from "../parser/stringParser";
+import { Parser, OriginalParams } from "../parser/parser";
+import { generatePath } from "react-router";
 
-type Route<TPath extends string, TPathParsers, TChildren> = {
-    [TKey in keyof TChildren]: TChildren[TKey] extends Route<infer TChildPath, infer TChildParams, infer TChildChildren>
-        ? Route<`${TPath}/${TChildPath}`, TPathParsers & TChildParams, TChildChildren>
+type Route<TPath extends string, TPathParsers, TQueryParsers, TChildren> = {
+    [TKey in keyof TChildren]: TChildren[TKey] extends Route<
+        infer TChildPath,
+        infer TChildPathParsers,
+        infer TChildQueryParsers,
+        infer TChildChildren
+    >
+        ? Route<
+              `${TPath}/${TChildPath}`,
+              TPathParsers & TChildPathParsers,
+              TQueryParsers & TChildQueryParsers,
+              TChildChildren
+          >
         : never;
-} & { path: TPath; build: (params: TPathParsers) => string };
+} & { path: TPath; build: (params: OriginalParams<TPathParsers>) => string };
+
+type DecoratedChildren<TChildren, TPath extends string, TPathParsers, TQueryParsers> = {
+    [TKey in keyof TChildren]: TChildren[TKey] extends Route<
+        infer TChildPath,
+        infer TChildPathParsers,
+        infer TChildQueryParsers,
+        infer TChildChildren
+    >
+        ? Route<
+              `${TPath}/${TChildPath}`,
+              TPathParsers & TChildPathParsers,
+              TQueryParsers & TChildQueryParsers,
+              TChildChildren
+          > &
+              DecoratedChildren<TChildren[TKey], TPath, TPathParsers, TQueryParsers>
+        : {};
+};
 
 type ForbidKeys<T, TKeys extends string> = T & { [key in TKeys]?: never };
 
@@ -19,26 +46,52 @@ type ExtractRouteParams<TPath extends string> = string extends TPath
     ? "*"
     : never;
 
+interface RouteOptions<TPathParsers, TQueryParsers, TChildren> {
+    path?: TPathParsers;
+    query?: TQueryParsers;
+    children?: TChildren;
+}
+
 export function route<
     TPath extends string,
-    TPathParsers extends ForbidKeys<Record<string, Parser<any>>, "hash">,
+    TPathParsers extends ForbidKeys<Record<ExtractRouteParams<TPath>, Parser<any>>, "hash">,
     TQueryParsers extends ForbidKeys<Record<string, Parser<any>>, "hash" | ExtractRouteParams<TPath>>,
     TChildren
 >(
     pathString: TPath,
-    { path, children }: { path?: TPathParsers; query?: TQueryParsers; children?: TChildren } = {}
-): Route<TPath, TPathParsers, TChildren> {
-    const decoratedChildren = children
-        ? Object.fromEntries(
-              Object.entries(children).map(([key, child]) => [key, { ...child, path: `${pathString}/${child.path}` }])
-          )
-        : undefined;
+    { path, children, query }: RouteOptions<TPathParsers, TQueryParsers, TChildren> = {}
+): Route<TPath, TPathParsers, TQueryParsers, TChildren> {
+    const decoratedChildren = children ? decorateChildren(children, pathString, path, query) : {};
 
     return {
         ...decoratedChildren,
         path: pathString,
-        build(params: TPathParsers) {
-            return "hi";
+        build(params: TPathParsers & TQueryParsers) {
+            return generatePath(pathString);
         },
-    } as Route<TPath, TPathParsers, TChildren>;
+    } as Route<TPath, TPathParsers, TQueryParsers, TChildren>;
+}
+
+function decorateChildren<TPath extends string, TPathParsers, TQueryParsers, TChildren>(
+    children: TChildren,
+    path: TPath,
+    pathParsers: TPathParsers,
+    queryParsers: TQueryParsers
+): DecoratedChildren<TChildren, TPath, TPathParsers, TQueryParsers> {
+    return Object.fromEntries(
+        Object.entries(children).map(([key, value]) => [
+            key,
+            isRoute(value)
+                ? {
+                      ...decorateChildren(value, path, pathParsers, queryParsers),
+                      path: `${path}/${value.path}`,
+                      build: (params: any) => generatePath(`${path}/${value.path}`, params),
+                  }
+                : value,
+        ])
+    ) as DecoratedChildren<TChildren, TPath, TPathParsers, TQueryParsers>;
+}
+
+function isRoute(value: unknown): value is Route<any, any, any, any> {
+    return Boolean(value && typeof value === "object" && "path" in value);
 }
