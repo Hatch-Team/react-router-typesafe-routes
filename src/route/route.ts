@@ -10,12 +10,14 @@ type Route<TPath extends string, TPathParsers, TQueryParsers, TChildren> = {
     >
         ? Route<
               `${TPath}/${TChildPath}`,
-              TPathParsers & TChildPathParsers,
+              TPathParsers | TChildPathParsers,
               TQueryParsers & TChildQueryParsers,
               TChildChildren
           >
         : never;
-} & { path: TPath; build: (params: OriginalParams<TPathParsers>) => string };
+} & { path: TPath; build: (params: OriginalParams<UnionToIntersection<TPathParsers>>) => string };
+
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
 type DecoratedChildren<TChildren, TPath extends string, TPathParsers, TQueryParsers> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends Route<
@@ -54,7 +56,9 @@ interface RouteOptions<TPathParsers, TQueryParsers, TChildren> {
 
 export function route<
     TPath extends string,
-    TPathParsers extends ForbidKeys<Record<ExtractRouteParams<TPath>, Parser<any>>, "hash">,
+    TPathParsers extends ExtractRouteParams<TPath> extends never
+        ? never
+        : ForbidKeys<Partial<Record<ExtractRouteParams<TPath>, Parser<any>>>, "hash">,
     TQueryParsers extends ForbidKeys<Record<string, Parser<any>>, "hash" | ExtractRouteParams<TPath>>,
     TChildren
 >(
