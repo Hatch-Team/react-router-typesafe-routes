@@ -1,14 +1,17 @@
 import { route } from "./route";
 import { generatePath } from "react-router";
-import { stringParser } from "../parser/stringParser";
+import { stringParser, numberParser, arrayOfParser } from "../parser/stringParser";
 
 it("works", () => {
-    const testRoute = route("test/:id", { path: { id: stringParser }, query: { idi: stringParser } });
-    const fooRoute = route("foo", { children: { testRoute } });
-    const barRoute = route("bar", { children: { fooRoute } });
+    const testRoute = route("test/:id", {
+        path: { id: numberParser },
+        query: { idi: arrayOfParser(numberParser) },
+    });
+    const fooRoute = route("foo", { path: undefined, children: { testRoute } });
+    const barRoute = route("bar", { path: undefined, children: { fooRoute } });
 
     expect(barRoute.fooRoute.testRoute.path).toEqual("bar/foo/test/:id");
-    expect(barRoute.fooRoute.testRoute.build({ id: "1" })).toEqual("bar/foo/test/1");
+    expect(barRoute.fooRoute.testRoute.build({ id: 1 }, { idi: [1, 2, 3] })).toEqual("bar/foo/test/1");
 });
 
 it("generates", () => {

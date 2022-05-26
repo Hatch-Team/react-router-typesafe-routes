@@ -10,12 +10,20 @@ type Route<TPath extends string, TPathParsers, TQueryParsers, TChildren> = {
     >
         ? Route<
               `${TPath}/${TChildPath}`,
-              TPathParsers | TChildPathParsers,
+              TPathParsers & TChildPathParsers,
               TQueryParsers & TChildQueryParsers,
               TChildChildren
           >
         : never;
-} & { path: TPath; build: (params: OriginalParams<UnionToIntersection<TPathParsers>>) => string };
+} & {
+    path: TPath;
+    build: (
+        params: PickAnything<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>>,
+        searchParams?: Partial<OriginalParams<TQueryParsers>>
+    ) => string;
+};
+
+type PickAnything<T, K extends string> = { [P in K]: P extends keyof T ? T[P] : string };
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
@@ -36,8 +44,6 @@ type DecoratedChildren<TChildren, TPath extends string, TPathParsers, TQueryPars
         : {};
 };
 
-type ForbidKeys<T, TKeys extends string> = T & { [key in TKeys]?: never };
-
 type ExtractRouteParams<TPath extends string> = string extends TPath
     ? never
     : TPath extends `${infer TStart}:${infer TParam}/${infer TRest}`
@@ -56,10 +62,8 @@ interface RouteOptions<TPathParsers, TQueryParsers, TChildren> {
 
 export function route<
     TPath extends string,
-    TPathParsers extends ExtractRouteParams<TPath> extends never
-        ? never
-        : ForbidKeys<Partial<Record<ExtractRouteParams<TPath>, Parser<any>>>, "hash">,
-    TQueryParsers extends ForbidKeys<Record<string, Parser<any>>, "hash" | ExtractRouteParams<TPath>>,
+    TPathParsers extends Partial<Record<ExtractRouteParams<TPath>, Parser<any>>>,
+    TQueryParsers extends Partial<Record<string, Parser<any, string | string[]>>>,
     TChildren
 >(
     pathString: TPath,
@@ -70,7 +74,7 @@ export function route<
     return {
         ...decoratedChildren,
         path: pathString,
-        build(params: TPathParsers & TQueryParsers) {
+        build(params) {
             return generatePath(pathString);
         },
     } as Route<TPath, TPathParsers, TQueryParsers, TChildren>;

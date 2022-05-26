@@ -1,6 +1,7 @@
 export interface Parser<TOriginal, TStored = string, TRetrieved = TOriginal> {
     store: (value: TOriginal) => TStored;
     retrieve: (value: unknown) => TRetrieved;
+    isArray?: boolean;
 }
 
 export interface ParserWithFallback<TOriginal, TStored = string, TRetrieved = TOriginal>
