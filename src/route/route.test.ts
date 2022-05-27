@@ -7,13 +7,13 @@ it("works", () => {
     const testRoute = route("test/:id", {
         path: { id: numberParser },
         hash: hashValues(),
-        query: { idi: arrayOfParser(numberParser) },
+        query: { idi: numberParser },
     });
-    const fooRoute = route("foo", { children: { testRoute } });
+    const fooRoute = route("foo", { query: { idi: arrayOfParser(numberParser) }, children: { testRoute } });
     const barRoute = route("bar", { children: { fooRoute } });
 
     expect(barRoute.fooRoute.testRoute.path).toEqual("bar/foo/test/:id");
-    expect(barRoute.fooRoute.testRoute.build({ id: 1 }, { idi: [1] }, "123")).toEqual("bar/foo/test/1");
+    expect(barRoute.fooRoute.testRoute.build({ id: 1 }, { idi: 1 }, "123")).toEqual("bar/foo/test/1");
 });
 
 it("generates", () => {

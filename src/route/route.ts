@@ -69,8 +69,8 @@ interface RouteOptions<TPathParsers, TQueryParsers, THash, TChildren> {
 export function route<
     TChildren,
     TPath extends string,
-    TPathParsers extends Partial<Record<ExtractRouteParams<TPath>, Parser<any>>>,
-    TQueryParsers extends Partial<Record<string, Parser<any, string | string[]>>>,
+    TPathParsers extends Partial<Record<ExtractRouteParams<TPath>, Parser<any>>> = {},
+    TQueryParsers extends Partial<Record<string, Parser<any, string | string[]>>> = {},
     THash extends string[] = never[]
 >(
     pathString: TPath,
