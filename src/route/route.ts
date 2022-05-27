@@ -1,7 +1,7 @@
 import { Parser, OriginalParams } from "../parser/parser";
 import { generatePath } from "react-router";
 
-type Route<TPath extends string, TPathParsers, TQueryParsers, THash extends string, TChildren> = {
+type Route<TPath extends string, TPathParsers, TQueryParsers, THash extends string[], TChildren> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends Route<
         infer TChildPath,
         infer TChildPathParsers,
@@ -22,7 +22,7 @@ type Route<TPath extends string, TPathParsers, TQueryParsers, THash extends stri
     build: (
         params: PickAnything<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>>,
         searchParams?: Partial<OriginalParams<TQueryParsers>>,
-        hash?: THash
+        hash?: THash[number]
     ) => string;
 };
 
@@ -30,7 +30,7 @@ type PickAnything<T, K extends string> = { [P in K]: P extends keyof T ? T[P] : 
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
-type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash extends string, TQueryParsers> = {
+type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash extends string[], TQueryParsers> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends Route<
         infer TChildPath,
         infer TChildPathParsers,
@@ -75,7 +75,7 @@ export function route<
 >(
     pathString: TPath,
     { path, children, query, hash }: RouteOptions<TPathParsers, TQueryParsers, THash, TChildren> = {}
-): Route<TPath, TPathParsers, TQueryParsers, THash[number], TChildren> {
+): Route<TPath, TPathParsers, TQueryParsers, THash, TChildren> {
     const decoratedChildren = children ? decorateChildren(children, pathString, path, query) : {};
 
     return {
@@ -84,10 +84,10 @@ export function route<
         build(params) {
             return generatePath(pathString);
         },
-    } as Route<TPath, TPathParsers, TQueryParsers, THash[number], TChildren>;
+    } as Route<TPath, TPathParsers, TQueryParsers, THash, TChildren>;
 }
 
-function decorateChildren<TPath extends string, TPathParsers, TQueryParsers, THash extends string, TChildren>(
+function decorateChildren<TPath extends string, TPathParsers, TQueryParsers, THash extends string[], TChildren>(
     children: TChildren,
     path: TPath,
     pathParsers: TPathParsers,
