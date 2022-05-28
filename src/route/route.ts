@@ -1,4 +1,4 @@
-import { Parser, OriginalParams } from "../parser/parser";
+import { Parser, OriginalParams, RetrievedParams } from "../parser/parser";
 import { generatePath } from "react-router";
 import { createSearchParams } from "react-router-dom";
 
@@ -28,6 +28,12 @@ interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THa
         searchParams?: Partial<OriginalParams<TSearchParsers>>,
         hash?: THash[number]
     ) => string;
+    parsePath: (
+        params: Record<string, string | undefined>
+    ) => PartialByKey<
+        PickWithFallback<RetrievedParams<TPathParsers>, ExtractRouteParams<SanitizedPath<TPath>>, string>,
+        "*"
+    >;
     originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash>;
 }
 
@@ -88,7 +94,7 @@ interface RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, TChildre
 export function route<
     TChildren,
     TPath extends string = string,
-    TPathParsers extends Partial<Record<ExtractRouteParams<TPath>, Parser<any>>> = {},
+    TPathParsers extends Partial<Record<ExtractRouteParams<SanitizedPath<TPath>>, Parser<any>>> = {},
     TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = {},
     THash extends string[] = never[]
 >(
@@ -138,19 +144,21 @@ function isRoute(value: unknown): value is Route<any, any, any, any, any> {
 
 function createRoute<
     TPath extends string,
-    TPathParsers extends Partial<Record<ExtractRouteParams<TPath>, Parser<any>>> = {},
+    TPathParsers extends Partial<Record<ExtractRouteParams<SanitizedPath<TPath>>, Parser<any>>> = {},
     TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = {},
     THash extends string[] = never[]
 >(
     path: SanitizedPath<TPath>,
     options: RouteOptions<TPathParsers, TSearchParsers, THash>
 ): RouteInterface<TPath, TPathParsers, TSearchParsers, THash> {
+    const keys = getKeys(path);
+
     return {
         relativePath: path,
         path: `/${path}`,
         originalOptions: options,
         buildUrl: (params, searchParams, hash) => {
-            const storedPathParams = storePathParams(params, options.path);
+            const storedPathParams = storePathParams(keys, params, options.path);
             const storedSearchParams = storeSearchParams(searchParams, options.search);
             const storedHash = storeHash(hash, options.hash);
 
@@ -161,10 +169,14 @@ function createRoute<
                 storedHash !== null ? `#${storedHash}` : ""
             }`;
         },
+        parsePath: (params) => {
+            return parsePath(keys, params, options.path);
+        },
     };
 }
 
 function storePathParams(
+    keys: string[],
     params: Record<string, unknown>,
     parsers?: Partial<Record<string, Parser<unknown, string>>>
 ): Record<string, string> {
@@ -172,7 +184,11 @@ function storePathParams(
         Object.entries(params)
             .map(([key, value]) => [
                 key,
-                parsers?.[key] ? parsers[key]?.store(value) : typeof value === "string" ? value : null,
+                keys.includes(key) && parsers?.[key]
+                    ? parsers[key]?.store(value)
+                    : typeof value === "string"
+                    ? value
+                    : null,
             ])
             .filter(([, value]) => value !== null)
     );
@@ -209,4 +225,45 @@ function mergeHashValues<T, U>(firstHash?: T[], secondHash?: U[]): (T | U)[] | u
     }
 
     return [...(firstHash ?? []), ...(secondHash ?? [])];
+}
+
+function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey, Parser<string>>>>(
+    keys: TKey[],
+    pathParams: Record<string, string | undefined>,
+    parsers?: TPathParsers
+): PartialByKey<PickWithFallback<RetrievedParams<TPathParsers>, TKey, string>, "*"> {
+    if (keys.some((key) => typeof pathParams[key] !== "string" && key !== "*")) {
+        throw new Error("Insufficient params");
+    }
+
+    let result: Record<string, unknown> = {};
+
+    keys.forEach((key) => {
+        if (parsers?.[key]) {
+            try {
+                result[key] = parsers[key]?.retrieve(pathParams[key]);
+            } catch (error) {
+                if (key !== "*") {
+                    throw error;
+                }
+            }
+        } else {
+            result[key] = pathParams[key];
+        }
+    });
+
+    return result as PartialByKey<PickWithFallback<RetrievedParams<TPathParsers>, TKey, string>, "*">;
+}
+
+function getKeys<TPath extends string>(path: TPath): ExtractRouteParams<TPath>[] {
+    const params = path
+        .split(":")
+        .filter((_, index) => Boolean(index))
+        .map((part) => part.split("/")[0]);
+
+    if (path.endsWith("*")) {
+        params.push("*");
+    }
+
+    return params as ExtractRouteParams<TPath>[];
 }
