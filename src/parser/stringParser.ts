@@ -24,6 +24,15 @@ export const numberParser = withFallback<number>({
     },
 });
 
+export const booleanParser = withFallback<boolean>({
+    store(value) {
+        return String(value);
+    },
+    retrieve(value) {
+        return Boolean(value);
+    },
+});
+
 export const arrayOfParser = <TOriginal, TStored, TRetrieved>(
     parser: Parser<TOriginal, TStored, TRetrieved>
 ): ParserWithFallback<TOriginal[], TStored[], TRetrieved[]> => {

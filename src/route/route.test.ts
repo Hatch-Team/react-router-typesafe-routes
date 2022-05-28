@@ -1,23 +1,76 @@
 import { route } from "./route";
-import { generatePath } from "react-router";
-import { stringParser, numberParser, arrayOfParser } from "../parser/stringParser";
-import { hashValues } from "./hashValues";
+import { numberParser, booleanParser } from "../parser/stringParser";
 
-it("works", () => {
-    const testRoute = route("test/:id", {
-        path: { id: numberParser },
-        hash: hashValues(),
-        query: { idi: numberParser },
-    });
-    const fooRoute = route("foo", { query: { idi: arrayOfParser(numberParser) }, children: { testRoute } });
-    const barRoute = route("bar", { children: { fooRoute } });
+it("provides relative path", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
 
-    expect(barRoute.fooRoute.testRoute.path).toEqual("bar/foo/test/:id");
-    expect(barRoute.fooRoute.testRoute.build({ id: 1 }, { idi: 1 }, "123")).toEqual("bar/foo/test/1");
+    expect(TEST_ROUTE.relativePath).toEqual("test");
+    expect(TEST_ROUTE.CHILD.relativePath).toEqual("test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/child/grand");
 });
 
-it("generates", () => {
-    const test = generatePath("foo/:bar", { bar: "1/2" });
+it("provides absolute path", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
 
-    expect(test).toEqual("foo/1/2");
+    expect(TEST_ROUTE.path).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.path).toEqual("/test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/child/grand");
+});
+
+it("allows implicit path params", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child/:id", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({ id: "42" })).toEqual("/test/child/42");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: "24" })).toEqual("/test/child/24/grand");
+});
+
+it("allows explicit path params", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child/:id", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({ id: 42 })).toEqual("/test/child/42");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: 24 })).toEqual("/test/child/24/grand");
+});
+
+it("allows to mix explicit and implicit path params", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child/:id/:value", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({ id: 42, value: "foo" })).toEqual("/test/child/42/foo");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: 24, value: "bar" })).toEqual("/test/child/24/bar/grand");
+});
+
+it("allows to mix explicit and implicit path params across multiple routes", () => {
+    const GRANDCHILD = route("grand/:name");
+    const CHILD = route("child/:id/:value", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({ id: 42, value: "foo" })).toEqual("/test/child/42/foo");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: 24, value: "bar", name: "baz" })).toEqual(
+        "/test/child/24/bar/grand/baz"
+    );
+});
+
+it("prioritizes children when mixing path params with the same name", () => {
+    const GRANDCHILD = route("grand/:id", { path: { id: booleanParser } });
+    const CHILD = route("child/:id/:value", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({ id: 42, value: "foo" })).toEqual("/test/child/42/foo");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: false, value: "bar" })).toEqual(
+        "/test/child/false/bar/grand/false"
+    );
 });
