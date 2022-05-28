@@ -37,6 +37,14 @@ type PartialByKey<T, K> = K extends keyof T ? Omit<T, K> & Partial<Pick<T, K>> :
 
 type SanitizedPath<T> = T extends `/${string}` ? never : T extends `${string}/` ? never : T;
 
+type SanitizedChildren<T> = T extends Record<infer TKey, unknown>
+    ? TKey extends string
+        ? TKey extends Capitalize<TKey>
+            ? T
+            : never
+        : T
+    : T;
+
 type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash extends string[], TSearchParsers> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends Route<
         infer TChildPath,
@@ -85,7 +93,12 @@ export function route<
     THash extends string[] = never[]
 >(
     pathString: SanitizedPath<TPath>,
-    { path, children, search, hash }: RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, TChildren> = {}
+    {
+        path,
+        children,
+        search,
+        hash,
+    }: RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, SanitizedChildren<TChildren>> = {}
 ): Route<TPath, TPathParsers, TSearchParsers, THash, TChildren> {
     const decoratedChildren = children ? decorateChildren(children, pathString, path, search, hash) : {};
 
