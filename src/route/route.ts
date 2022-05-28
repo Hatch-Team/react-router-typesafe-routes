@@ -111,7 +111,7 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
                       ...createRoute(`${path}/${value.relativePath}` as SanitizedPath<any>, {
                           path: { ...pathParsers, ...value.originalOptions.path },
                           search: { ...searchParsers, ...value.originalOptions.search },
-                          hash: [...(hash ?? []), ...(value.originalOptions.hash ?? [])],
+                          hash: mergeHashValues(hash, value.originalOptions.hash as string[] | undefined),
                       }),
                   }
                 : value,
@@ -184,4 +184,16 @@ function storeHash(hash?: string, hashValues?: string[]): string | null {
     }
 
     return null;
+}
+
+function mergeHashValues<T, U>(firstHash?: T[], secondHash?: U[]): (T | U)[] | undefined {
+    if (!firstHash && !secondHash) {
+        return undefined;
+    }
+
+    if (firstHash?.length === 0 || secondHash?.length === 0) {
+        return [];
+    }
+
+    return [...(firstHash ?? []), ...(secondHash ?? [])];
 }
