@@ -24,16 +24,18 @@ interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THa
     relativePath: TPath;
     path: `/${TPath}`;
     buildUrl: (
-        params: PickAnything<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>,
+        params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">,
         searchParams?: Partial<OriginalParams<TSearchParsers>>,
         hash?: THash[number]
     ) => string;
     originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash>;
 }
 
-type PickAnything<T, K extends string, F> = { [P in K]: P extends keyof T ? T[P] : F };
+type PickWithFallback<T, K extends string, F> = { [P in K]: P extends keyof T ? T[P] : F };
 
-type RelativePath<T> = T extends `/${string}` ? never : T extends `${string}/` ? never : T;
+type PartialByKey<T, K> = K extends keyof T ? Omit<T, K> & Partial<Pick<T, K>> : T;
+
+type SanitizedPath<T> = T extends `/${string}` ? never : T extends `${string}/` ? never : T;
 
 type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash extends string[], TSearchParsers> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends Route<
@@ -82,7 +84,7 @@ export function route<
     TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = {},
     THash extends string[] = never[]
 >(
-    pathString: RelativePath<TPath>,
+    pathString: SanitizedPath<TPath>,
     { path, children, search, hash }: RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, TChildren> = {}
 ): Route<TPath, TPathParsers, TSearchParsers, THash, TChildren> {
     const decoratedChildren = children ? decorateChildren(children, pathString, path, search, hash) : {};
@@ -95,7 +97,7 @@ export function route<
 
 function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren>(
     children: TChildren,
-    path: RelativePath<TPath>,
+    path: SanitizedPath<TPath>,
     pathParsers?: TPathParsers,
     searchParsers?: TSearchParsers,
     hash?: THash
@@ -106,7 +108,7 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
             isRoute(value)
                 ? {
                       ...decorateChildren(value, path, pathParsers, searchParsers, hash),
-                      ...createRoute(`${path}/${value.relativePath}` as RelativePath<any>, {
+                      ...createRoute(`${path}/${value.relativePath}` as SanitizedPath<any>, {
                           path: { ...pathParsers, ...value.originalOptions.path },
                           search: { ...searchParsers, ...value.originalOptions.search },
                           hash: [...(hash ?? []), ...(value.originalOptions.hash ?? [])],
@@ -127,7 +129,7 @@ function createRoute<
     TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = {},
     THash extends string[] = never[]
 >(
-    path: RelativePath<TPath>,
+    path: SanitizedPath<TPath>,
     options: RouteOptions<TPathParsers, TSearchParsers, THash>
 ): RouteInterface<TPath, TPathParsers, TSearchParsers, THash> {
     return {

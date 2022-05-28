@@ -74,3 +74,33 @@ it("prioritizes children when mixing path params with the same name", () => {
         "/test/child/false/bar/grand/false"
     );
 });
+
+it("allows implicit star path param", () => {
+    const GRANDCHILD = route("grand/*");
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({})).toEqual("/test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ "*": "star/param" })).toEqual("/test/child/grand/star/param");
+});
+
+it("allows explicit star path param", () => {
+    const GRANDCHILD = route("grand/*", { path: { "*": numberParser } });
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({})).toEqual("/test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ "*": 42 })).toEqual("/test/child/grand/42");
+});
+
+it("allows star path param to be optional", () => {
+    const GRANDCHILD = route("grand/*", { path: { "*": numberParser } });
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({})).toEqual("/test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({})).toEqual("/test/child/grand");
+});
