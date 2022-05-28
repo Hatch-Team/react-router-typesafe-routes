@@ -1,1 +1,1 @@
-export { route } from "./route.dummy";
+export { route } from "./route";
