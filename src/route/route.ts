@@ -80,7 +80,7 @@ type ExtractRouteParams<TPath extends string> = string extends TPath
     ? TParam | ExtractRouteParams<TRest>
     : TPath extends `${infer TStart}:${infer TParam}`
     ? TParam
-    : TPath extends `${infer TStart}*`
+    : TPath extends `${infer TBefore}*${infer TAfter}`
     ? "*"
     : never;
 
@@ -273,7 +273,7 @@ function getKeys<TPath extends string>(path: TPath): ExtractRouteParams<TPath>[]
         .filter((_, index) => Boolean(index))
         .map((part) => part.split("/")[0]);
 
-    if (path.endsWith("*")) {
+    if (path.includes("*")) {
         params.push("*");
     }
 

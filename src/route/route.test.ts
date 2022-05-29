@@ -319,3 +319,13 @@ it("silently omits invalid star path param", () => {
     expect(TEST_ROUTE.CHILD.parsePath({ "*": "foo" })).toEqual({});
     expect(TEST_ROUTE.CHILD.GRANDCHILD.parsePath({ "*": "foo" })).toEqual({});
 });
+
+it("allows intermediate star param parsing", () => {
+    const GRANDCHILD = route("grand", {});
+    const CHILD = route("child/*", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.parsePath({ "*": "foo/bar" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.parsePath({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.parsePath({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
+});
