@@ -11,7 +11,7 @@ type Route<TPath extends string, TPathParsers, TSearchParsers, THash extends str
         infer TChildChildren
     >
         ? Route<
-              `${TPath}/${TChildPath}`,
+              TPath extends "" ? TChildPath : TChildPath extends "" ? TPath : `${TPath}/${TChildPath}`,
               TPathParsers & TChildPathParsers,
               TSearchParsers & TChildQueryParsers,
               THash | TChildHash,
@@ -34,7 +34,7 @@ interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THa
         PickWithFallback<RetrievedParams<TPathParsers>, ExtractRouteParams<SanitizedPath<TPath>>, string>,
         "*"
     >;
-    originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash>;
+    originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash> & { pathString: TPath };
 }
 
 type PickWithFallback<T, K extends string, F> = { [P in K]: P extends keyof T ? T[P] : F };
@@ -131,11 +131,18 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
             isRoute(value)
                 ? {
                       ...decorateChildren(value, path, pathParsers, searchParsers, hash),
-                      ...createRoute(`${path}${value.path}` as SanitizedPath<any>, {
-                          path: { ...pathParsers, ...value.originalOptions.path },
-                          search: { ...searchParsers, ...value.originalOptions.search },
-                          hash: mergeHashValues(hash, value.originalOptions.hash as string[] | undefined),
-                      }),
+                      ...createRoute(
+                          (path === ""
+                              ? value.originalOptions.pathString
+                              : value.originalOptions.pathString === ""
+                              ? path
+                              : `${path}/${value.originalOptions.pathString}`) as SanitizedPath<any>,
+                          {
+                              path: { ...pathParsers, ...value.originalOptions.path },
+                              search: { ...searchParsers, ...value.originalOptions.search },
+                              hash: mergeHashValues(hash, value.originalOptions.hash as string[] | undefined),
+                          }
+                      ),
                   }
                 : value,
         ])
@@ -161,7 +168,7 @@ function createRoute<
     return {
         relativePath: pathWithoutIntermediateStars,
         path: `/${path}`,
-        originalOptions: options,
+        originalOptions: { ...options, pathString: path },
         buildUrl: (params, searchParams, hash) => {
             const storedPathParams = storePathParams(keys, params, options.path);
             const storedSearchParams = storeSearchParams(searchParams, options.search);

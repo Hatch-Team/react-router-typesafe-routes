@@ -42,6 +42,48 @@ it("removes intermediate stars from relative path", () => {
     expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/child/grand");
 });
 
+it("allows empty segment at the beginning of the route", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("", { children: { CHILD } });
+
+    expect(TEST_ROUTE.path).toEqual("/");
+    expect(TEST_ROUTE.CHILD.path).toEqual("/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/child/grand");
+
+    expect(TEST_ROUTE.relativePath).toEqual("");
+    expect(TEST_ROUTE.CHILD.relativePath).toEqual("child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("child/grand");
+});
+
+it("allows empty segment in the middle of the route", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.path).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.path).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/grand");
+
+    expect(TEST_ROUTE.relativePath).toEqual("test");
+    expect(TEST_ROUTE.CHILD.relativePath).toEqual("test");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/grand");
+});
+
+it("allows empty segment at the end of the route", () => {
+    const GRANDCHILD = route("");
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.path).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.path).toEqual("/test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/child");
+
+    expect(TEST_ROUTE.relativePath).toEqual("test");
+    expect(TEST_ROUTE.CHILD.relativePath).toEqual("test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/child");
+});
+
 it("allows implicit path params", () => {
     const GRANDCHILD = route("grand");
     const CHILD = route("child/:id", { children: { GRANDCHILD } });
