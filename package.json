@@ -1,6 +1,6 @@
 {
     "name": "react-router-typesafe-routes",
-    "version": "0.3.1",
+    "version": "0.4.0-alpha.1",
     "description": "Comprehensive type-safe routes for react-router.",
     "keywords": [
         "typesafe",
@@ -27,7 +27,7 @@
         "lint": "eslint .",
         "test": "jest",
         "prepack": "yarn build",
-        "prepublish": "yarn format:check && yarn lint && yarn test"
+        "prepublish": "yarn format:check && yarn test"
     },
     "devDependencies": {
         "@types/jest": "^27.5.1",
