@@ -310,12 +310,8 @@ function parseSearch<TSearchParsers extends Partial<Record<string, Parser<unknow
 }
 
 function parseHash(hash?: string, hashValues?: string[]): string | undefined {
-    if (hashValues?.length === 0) {
-        return hash;
-    }
-
-    if (hash && hashValues?.includes(hash)) {
-        return hash;
+    if (hashValues?.length === 0 || (hash && hashValues?.includes(hash))) {
+        return hash?.substring(1, hash?.length);
     }
 
     return undefined;

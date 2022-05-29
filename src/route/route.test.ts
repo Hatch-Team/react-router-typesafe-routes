@@ -358,7 +358,7 @@ it("allows hash parsing", () => {
     });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
-    const testLocation = { hash: "baz" } as Location;
+    const testLocation = { hash: "#baz" } as Location;
 
     expect(TEST_ROUTE.parseHash(testLocation)).toEqual(undefined);
     expect(TEST_ROUTE.CHILD.parseHash(testLocation)).toEqual(undefined);
