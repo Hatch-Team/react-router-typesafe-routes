@@ -345,9 +345,9 @@ it("allows search params parsing", () => {
     testSearchParams.append("arr", "2");
     testSearchParams.set("foo", "foo");
 
-    expect(TEST_ROUTE.parseQuery([testSearchParams, () => {}])[0]).toEqual({});
-    expect(TEST_ROUTE.CHILD.parseQuery([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2], foo: "foo" });
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.parseQuery([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2] });
+    expect(TEST_ROUTE.parseSearch([testSearchParams, () => {}])[0]).toEqual({});
+    expect(TEST_ROUTE.CHILD.parseSearch([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2], foo: "foo" });
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.parseSearch([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2] });
 });
 
 it("allows hash parsing", () => {

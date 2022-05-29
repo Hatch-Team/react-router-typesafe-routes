@@ -34,7 +34,7 @@ interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THa
         PickWithFallback<RetrievedParams<TPathParsers>, ExtractRouteParams<SanitizedPath<TPath>>, string>,
         "*"
     >;
-    parseQuery: (
+    parseSearch: (
         hookResult: ReturnType<typeof useSearchParams>
     ) => [Partial<RetrievedParams<TSearchParsers>>, (params: Partial<OriginalParams<TSearchParsers>>) => void];
     parseHash: (location: Location) => THash[number] | undefined;
@@ -188,7 +188,7 @@ function createRoute<
         parsePath: (params) => {
             return parsePath(keys, params, options.path);
         },
-        parseQuery: ([urlSearchParams, setUrlSearchParams]) => {
+        parseSearch: ([urlSearchParams, setUrlSearchParams]) => {
             return [
                 parseSearch(urlSearchParams, options.search),
                 (params?: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => {
