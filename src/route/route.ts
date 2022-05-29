@@ -21,7 +21,7 @@ type Route<TPath extends string, TPathParsers, TSearchParsers, THash extends str
 } & RouteInterface<TPath, TPathParsers, TSearchParsers, THash>;
 
 interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
-    relativePath: TPath;
+    relativePath: PathWithoutIntermediateStars<TPath>;
     path: `/${TPath}`;
     buildUrl: (
         params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">,
@@ -42,6 +42,10 @@ type PickWithFallback<T, K extends string, F> = { [P in K]: P extends keyof T ? 
 type PartialByKey<T, K> = K extends keyof T ? Omit<T, K> & Partial<Pick<T, K>> : T;
 
 type SanitizedPath<T> = T extends `/${string}` ? never : T extends `${string}/` ? never : T;
+
+type PathWithoutIntermediateStars<T extends string> = T extends `${infer TStart}*/`
+    ? PathWithoutIntermediateStars<TStart>
+    : T;
 
 type SanitizedChildren<T> = T extends Record<infer TKey, unknown>
     ? TKey extends string
@@ -127,7 +131,7 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
             isRoute(value)
                 ? {
                       ...decorateChildren(value, path, pathParsers, searchParsers, hash),
-                      ...createRoute(`${path}/${value.relativePath}` as SanitizedPath<any>, {
+                      ...createRoute(`${path}${value.path}` as SanitizedPath<any>, {
                           path: { ...pathParsers, ...value.originalOptions.path },
                           search: { ...searchParsers, ...value.originalOptions.search },
                           hash: mergeHashValues(hash, value.originalOptions.hash as string[] | undefined),
@@ -152,9 +156,10 @@ function createRoute<
     options: RouteOptions<TPathParsers, TSearchParsers, THash>
 ): RouteInterface<TPath, TPathParsers, TSearchParsers, THash> {
     const keys = getKeys(path);
+    const pathWithoutIntermediateStars = removeIntermediateStars(path);
 
     return {
-        relativePath: path,
+        relativePath: pathWithoutIntermediateStars,
         path: `/${path}`,
         originalOptions: options,
         buildUrl: (params, searchParams, hash) => {
@@ -162,7 +167,7 @@ function createRoute<
             const storedSearchParams = storeSearchParams(searchParams, options.search);
             const storedHash = storeHash(hash, options.hash);
 
-            const pathString = generatePath(path, storedPathParams);
+            const pathString = generatePath(pathWithoutIntermediateStars, storedPathParams);
             const searchString = createSearchParams(storedSearchParams).toString();
 
             return `/${pathString}${searchString ? `?${searchString}` : ""}${
@@ -266,4 +271,8 @@ function getKeys<TPath extends string>(path: TPath): ExtractRouteParams<TPath>[]
     }
 
     return params as ExtractRouteParams<TPath>[];
+}
+
+function removeIntermediateStars<TPath extends string>(path: TPath): PathWithoutIntermediateStars<TPath> {
+    return path.replace("*/", "") as PathWithoutIntermediateStars<TPath>;
 }

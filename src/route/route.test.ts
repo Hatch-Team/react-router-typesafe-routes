@@ -2,6 +2,26 @@ import { route } from "./route";
 import { numberParser, booleanParser, arrayOfParser } from "../parser/stringParser";
 import { hashValues } from "./hashValues";
 
+it("provides absolute path", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.path).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.path).toEqual("/test/child");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/child/grand");
+});
+
+it("preserves intermediate stars in absolute path", () => {
+    const GRANDCHILD = route("grand");
+    const CHILD = route("child/*", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.path).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.path).toEqual("/test/child/*");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/child/*/grand");
+});
+
 it("provides relative path", () => {
     const GRANDCHILD = route("grand");
     const CHILD = route("child", { children: { GRANDCHILD } });
@@ -12,14 +32,14 @@ it("provides relative path", () => {
     expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/child/grand");
 });
 
-it("provides absolute path", () => {
+it("removes intermediate stars from relative path", () => {
     const GRANDCHILD = route("grand");
-    const CHILD = route("child", { children: { GRANDCHILD } });
+    const CHILD = route("child/*", { children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
-    expect(TEST_ROUTE.path).toEqual("/test");
-    expect(TEST_ROUTE.CHILD.path).toEqual("/test/child");
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/child/grand");
+    expect(TEST_ROUTE.relativePath).toEqual("test");
+    expect(TEST_ROUTE.CHILD.relativePath).toEqual("test/child/*");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/child/grand");
 });
 
 it("allows implicit path params", () => {
@@ -104,6 +124,16 @@ it("allows star path param to be optional", () => {
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({})).toEqual("/test/child");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({})).toEqual("/test/child/grand");
+});
+
+it("allows star path param in the middle of combined path", () => {
+    const GRANDCHILD = route("grand", {});
+    const CHILD = route("child/*", { children: { GRANDCHILD } });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    expect(TEST_ROUTE.buildUrl({ "*": "foo" })).toEqual("/test");
+    expect(TEST_ROUTE.CHILD.buildUrl({ "*": "foo" })).toEqual("/test/child/foo");
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ "*": "foo" })).toEqual("/test/child/grand");
 });
 
 it("allows search params", () => {
