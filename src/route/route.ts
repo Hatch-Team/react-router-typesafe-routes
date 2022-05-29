@@ -21,9 +21,14 @@ type Route<TPath extends string, TPathParsers, TSearchParsers, THash extends str
 } & RouteInterface<TPath, TPathParsers, TSearchParsers, THash>;
 
 interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
-    relativePath: PathWithoutIntermediateStars<TPath>;
     path: `/${TPath}`;
+    relativePath: PathWithoutIntermediateStars<TPath>;
     buildUrl: (
+        params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">,
+        searchParams?: Partial<OriginalParams<TSearchParsers>>,
+        hash?: THash[number]
+    ) => string;
+    buildRelativeUrl: (
         params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">,
         searchParams?: Partial<OriginalParams<TSearchParsers>>,
         hash?: THash[number]
@@ -169,21 +174,35 @@ function createRoute<
     const keys = getKeys(path);
     const pathWithoutIntermediateStars = removeIntermediateStars(path);
 
+    function buildPath(
+        params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">
+    ) {
+        const storedPathParams = storePathParams(keys, params, options.path);
+        return generatePath(pathWithoutIntermediateStars, storedPathParams);
+    }
+
+    function buildSearch(params?: Partial<OriginalParams<TSearchParsers>>) {
+        const storedSearchParams = storeSearchParams(params, options.search);
+        const searchString = createSearchParams(storedSearchParams).toString();
+
+        return searchString ? `?${searchString}` : "";
+    }
+
+    function buildHash(hash?: THash[number]) {
+        const storedHash = storeHash(hash, options.hash);
+
+        return storedHash !== null ? `#${storedHash}` : "";
+    }
+
     return {
         relativePath: pathWithoutIntermediateStars,
         path: `/${path}`,
         originalOptions: { ...options, pathString: path },
         buildUrl: (params, searchParams, hash) => {
-            const storedPathParams = storePathParams(keys, params, options.path);
-            const storedSearchParams = storeSearchParams(searchParams, options.search);
-            const storedHash = storeHash(hash, options.hash);
-
-            const pathString = generatePath(pathWithoutIntermediateStars, storedPathParams);
-            const searchString = createSearchParams(storedSearchParams).toString();
-
-            return `/${pathString}${searchString ? `?${searchString}` : ""}${
-                storedHash !== null ? `#${storedHash}` : ""
-            }`;
+            return `/${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
+        },
+        buildRelativeUrl: (params, searchParams, hash) => {
+            return `${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
         },
         parsePath: (params) => {
             return parsePath(keys, params, options.path);
