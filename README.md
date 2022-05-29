@@ -118,7 +118,63 @@ const DETAILS = route("details");
 const PRODUCT = route("product/:id", { children: { DETAILS } });
 ```
 
-It's important to understand that `DETAILS` and `PRODUCT.DETAILS` are separate routes, which may behave differently. `DETAILS` doesn't know anything about `PRODUCT`, but `PRODUCT.DETAILS` does. In `PRODUCT.DETAILS`, `DETAILS` can be referred to as a child of `PRODUCT`.
+Sure enough, you can also inline child routes:
+
+```typescript
+const PRODUCT = route("product/:id", { children: { DETAILS: route("details") } });
+```
+
+It's important to understand that `DETAILS` and `PRODUCT.DETAILS` are separate routes, which may behave differently during parsing or building URLs. `DETAILS` doesn't know anything about `PRODUCT`, but `PRODUCT.DETAILS` does. In `PRODUCT.DETAILS`, `DETAILS` can be referred to as a child of `PRODUCT`.
+
+These child routes correspond to child routes in react-router:
+
+```typescript jsx
+<Routes>
+    {/* '/product/:id' */}
+    <Route path={PRODUCT.path} element={<Product />}>
+        {/* '/product/:id/details' */}
+        <Route path={PRODUCT.DETAILS.path} element={<ProductDetails />} />
+    </Route>
+</Routes>
+```
+
+> React-router allows absolute paths in child routes, if they match the parent path.
+
+Note that we're using the `path` field here, which returns an absolute path. This ensures that the path provided to react-router is actually defined by the library.
+
+> You're encouraged to use the `path` field whenever possible.
+
+As an escape hatch, you can use relative paths (note how you can't inline child routes with this approach):
+
+```typescript jsx
+<Routes>
+    {/* '/product/:id' */}
+    <Route path={PRODUCT.path} element={<Product />}>
+        {/* 'details' */}
+        <Route path={DETAILS.relativePath} element={<ProductDetails />} />
+    </Route>
+</Routes>
+```
+
+Inlining children is convenient, but not always possible. If your `<Route/>` is not a direct child of another `<Route />`, not only you have to add a `*` to the parent's path, but also create a separate route definition. This is because each `<Routes/>` requires its own absolute paths.
+
+```typescript jsx
+const DETAILS = route("details");
+const PRODUCT = route("product/:id/*", { children: { DETAILS } });
+
+<Routes>
+    {/* '/product/:id/*' */}
+    <Route path={PRODUCT.path} element={<Product />} />
+</Routes>;
+
+// Somewhere inside <Product />
+<Routes>
+    {/* '/details' */}
+    <Route path={DETAILS.path} element={<ProductDetails />} />
+</Routes>;
+```
+
+Note that star doesn't necessarily mean that the subsequent routes can't be rendered as direct children.
 
 ### What `path` values are allowed
 
@@ -149,15 +205,25 @@ export interface Parser<TOriginal, TStored = string, TRetrieved = TOriginal> {
 
 -   `isArray` is a helper flag specific for `URLSearchParams`, so we know when to `.get()` and when to `.getAll()`.
 
-If `retrieve()` fails to retrieve the value, it throws. To avoid that in case of built-in parsers, you can call the parser to get its fail-proof version. Such a parser will return the specified fallback in case of an error.
+> You are encouraged to write your own parsers as needed.
 
-The library provides the `withFallback()` helper for custom parsers to achieve the same functionality.
+If `retrieve()` fails to retrieve the value, it throws. To avoid that in case of built-in parsers, you can call the parser to get its fail-proof version. Such a parser will return the specified fallback in case of an error:
+
+```typescript
+import { numberParser } from "./stringParser";
+
+const ROUTE = route("my/route", { search: { searchParam: numberParser(100) } });
+```
+
+Wrap your custom parser with the `withFallback()` helper to achieve the same functionality.
 
 #### Path params
 
 Path params are inferred from the provided `path` and can be overridden (partially or completely) with path parsers. Inferred params won't use any parser at all.
 
 All path params are required, except for the star (`*`) parameter. That is, if the star parameter parser throws during the retrieving, the star parameter will simply be omitted.
+
+> You shouldn't ever need to provide a parser for the star parameter, but it's technically possible.
 
 #### Search params
 
