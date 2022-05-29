@@ -25,6 +25,7 @@ type ParserType<T, TUseOriginal extends boolean> = T extends Parser<infer TOrigi
 export function withFallback<TOriginal, TStored = string, TRetrieved = TOriginal>({
     store,
     retrieve,
+    isArray,
 }: Parser<TOriginal, TStored, TRetrieved>): ParserWithFallback<TOriginal, TStored, TRetrieved> {
     const getParserMethods = (fallback: TRetrieved) => ({
         store,
@@ -35,7 +36,8 @@ export function withFallback<TOriginal, TStored = string, TRetrieved = TOriginal
                 return fallback;
             }
         },
+        isArray,
     });
 
-    return Object.assign(getParserMethods, { store, retrieve });
+    return Object.assign(getParserMethods, { store, retrieve, isArray });
 }

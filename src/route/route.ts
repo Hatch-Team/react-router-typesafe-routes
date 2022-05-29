@@ -1,6 +1,6 @@
 import { Parser, OriginalParams, RetrievedParams } from "../parser/parser";
-import { generatePath } from "react-router";
-import { createSearchParams } from "react-router-dom";
+import { generatePath, NavigateOptions, Location } from "react-router";
+import { createSearchParams, useSearchParams } from "react-router-dom";
 
 type Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends Route<
@@ -34,6 +34,10 @@ interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THa
         PickWithFallback<RetrievedParams<TPathParsers>, ExtractRouteParams<SanitizedPath<TPath>>, string>,
         "*"
     >;
+    parseQuery: (
+        hookResult: ReturnType<typeof useSearchParams>
+    ) => [Partial<RetrievedParams<TSearchParsers>>, (params: Partial<OriginalParams<TSearchParsers>>) => void];
+    parseHash: (location: Location) => THash[number] | undefined;
     originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash> & { pathString: TPath };
 }
 
@@ -184,6 +188,17 @@ function createRoute<
         parsePath: (params) => {
             return parsePath(keys, params, options.path);
         },
+        parseQuery: ([urlSearchParams, setUrlSearchParams]) => {
+            return [
+                parseSearch(urlSearchParams, options.search),
+                (params?: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => {
+                    setUrlSearchParams(storeSearchParams(params, options.search), navigateOptions);
+                },
+            ];
+        },
+        parseHash: (location: Location) => {
+            return parseHash(location.hash, options.hash);
+        },
     };
 }
 
@@ -265,6 +280,45 @@ function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey
     });
 
     return result as PartialByKey<PickWithFallback<RetrievedParams<TPathParsers>, TKey, string>, "*">;
+}
+
+function parseSearch<TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>>(
+    searchParams: URLSearchParams,
+    parsers?: TSearchParsers
+): Partial<RetrievedParams<TSearchParsers>> {
+    if (!parsers) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(parsers)
+            .map(([key, value]) => {
+                let nextValue: unknown;
+
+                try {
+                    nextValue = value?.isArray
+                        ? value.retrieve(searchParams.getAll(key))
+                        : value?.retrieve(searchParams.get(key));
+                } catch {
+                    nextValue = null;
+                }
+
+                return [key, nextValue];
+            })
+            .filter(([, value]) => value !== null)
+    );
+}
+
+function parseHash(hash?: string, hashValues?: string[]): string | undefined {
+    if (hashValues?.length === 0) {
+        return hash;
+    }
+
+    if (hash && hashValues?.includes(hash)) {
+        return hash;
+    }
+
+    return undefined;
 }
 
 function getKeys<TPath extends string>(path: TPath): ExtractRouteParams<TPath>[] {

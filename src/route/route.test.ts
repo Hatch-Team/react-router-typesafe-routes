@@ -1,6 +1,7 @@
 import { route } from "./route";
-import { numberParser, booleanParser, arrayOfParser } from "../parser/stringParser";
+import { numberParser, booleanParser, arrayOfParser, stringParser } from "../parser/stringParser";
 import { hashValues } from "./hashValues";
+import { Location } from "react-router";
 
 it("provides absolute path", () => {
     const GRANDCHILD = route("grand");
@@ -328,4 +329,38 @@ it("allows intermediate star param parsing", () => {
     expect(TEST_ROUTE.parsePath({ "*": "foo/bar" })).toEqual({});
     expect(TEST_ROUTE.CHILD.parsePath({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
     expect(TEST_ROUTE.CHILD.GRANDCHILD.parsePath({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
+});
+
+it("allows search params parsing", () => {
+    const GRANDCHILD = route("grand", { search: { foo: numberParser } });
+    const CHILD = route("child", {
+        search: { foo: stringParser, arr: arrayOfParser(numberParser) },
+        children: { GRANDCHILD },
+    });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    const testSearchParams = new URLSearchParams();
+
+    testSearchParams.set("arr", "1");
+    testSearchParams.append("arr", "2");
+    testSearchParams.set("foo", "foo");
+
+    expect(TEST_ROUTE.parseQuery([testSearchParams, () => {}])[0]).toEqual({});
+    expect(TEST_ROUTE.CHILD.parseQuery([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2], foo: "foo" });
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.parseQuery([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2] });
+});
+
+it("allows hash parsing", () => {
+    const GRANDCHILD = route("grand", { hash: hashValues() });
+    const CHILD = route("child", {
+        hash: hashValues("foo", "bar"),
+        children: { GRANDCHILD },
+    });
+    const TEST_ROUTE = route("test", { children: { CHILD } });
+
+    const testLocation = { hash: "baz" } as Location;
+
+    expect(TEST_ROUTE.parseHash(testLocation)).toEqual(undefined);
+    expect(TEST_ROUTE.CHILD.parseHash(testLocation)).toEqual(undefined);
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.parseHash(testLocation)).toEqual("baz");
 });
