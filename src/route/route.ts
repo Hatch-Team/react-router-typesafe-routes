@@ -20,7 +20,7 @@ type Route<TPath extends string, TPathParsers, TSearchParsers, THash extends str
         : never;
 } & RouteInterface<TPath, TPathParsers, TSearchParsers, THash>;
 
-interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
+export interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
     path: `/${TPath}`;
     relativePath: PathWithoutIntermediateStars<TPath>;
     buildUrl: (
