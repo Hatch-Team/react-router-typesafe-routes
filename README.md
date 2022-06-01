@@ -156,6 +156,8 @@ As an escape hatch, you can use relative paths (note how you can't inline child 
 </Routes>
 ```
 
+> `path` contains a combined path with a leading slash (`/`), and `relativePath` contains a combined path **without stars (`*`)** and without leading slash (`/`).
+
 Inlining children is convenient, but not always possible. If your `<Route/>` is not a direct child of another `<Route />`, not only you have to add a `*` to the parent's path, but also create a separate route definition. This is because each `<Routes/>` requires its own absolute paths.
 
 ```typescript jsx
@@ -221,7 +223,14 @@ Wrap your custom parser with the `withFallback()` helper to achieve the same fun
 
 Path params are inferred from the provided `path` and can be overridden (partially or completely) with path parsers. Inferred params won't use any parser at all.
 
+```typescript
+// Here, 'id' is parsed with a number parser, and 'subId' implicitly has a 'string' type
+const ROUTE = route("route/:id/:subId", { path: { id: numberParser } });
+```
+
 All path params are required, except for the star (`*`) parameter. That is, if the star parameter parser throws during the retrieving, the star parameter will simply be omitted.
+
+On the other hand, if any other parser throws, the parsing itself fails.
 
 > You shouldn't ever need to provide a parser for the star parameter, but it's technically possible.
 
@@ -229,15 +238,32 @@ All path params are required, except for the star (`*`) parameter. That is, if t
 
 Search params are determined by the provided search parsers.
 
+```typescript
+// Here, we define a search parameter 'filter' of 'string' type
+const ROUTE = route("route", { search: { filter: stringParser } });
+```
+
 All search parameters are optional. That is, if such a parser throws during the retrieving, the corresponding value is simply omitted.
 
 #### Hash
 
-Hash doesn't use any parsers. Instead, you can specify the allowed values, or specify that any `string` is allowed. By default, nothing is allowed as a hash value (otherwise, nesting of hash values wouldn't work).
+Hash doesn't use any parsers. Instead, you can specify the allowed values, or specify that any `string` is allowed (by calling the helper without parameters). By default, nothing is allowed as a hash value (otherwise, nesting of hash values wouldn't work).
+
+```typescript
+const ROUTE_NO_HASH = route("route");
+
+const ROUTE_DEFINED_HASH = route("route", { hash: hashValues("about", "more") });
+
+const ROUTE_ANY_HASH = route("route", { hash: hashValues() });
+```
+
+> Note that `hashValues()` is the equivalent of `[] as const` and is used only to make typing more convenient.
 
 ### How params work for nested routes
 
 Child routes implicitly have all parameters of their ancestors. For parameters with the same name, child parsers take precedence.
+
+> Parameters with the same name are discouraged.
 
 Note that a parent path parser will take precedence of an implicit child path param.
 
