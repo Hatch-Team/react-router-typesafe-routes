@@ -176,7 +176,7 @@ const PRODUCT = route("product/:id/*", { children: { DETAILS } });
 </Routes>;
 ```
 
-Note that star doesn't necessarily mean that the subsequent routes can't be rendered as direct children.
+> Note that star doesn't necessarily mean that the subsequent routes can't be rendered as direct children.
 
 ### What `path` values are allowed
 
