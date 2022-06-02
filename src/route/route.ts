@@ -1,16 +1,16 @@
-import { Parser, OriginalParams, RetrievedParams } from "../parser/parser";
+import { Parser, OriginalParams, RetrievedParams } from "../parser";
 import { generatePath, NavigateOptions, Location } from "react-router";
 import { createSearchParams, useSearchParams } from "react-router-dom";
 
-type Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren> = {
-    [TKey in keyof TChildren]: TChildren[TKey] extends Route<
+type RouteWithChildren<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren> = {
+    [TKey in keyof TChildren]: TChildren[TKey] extends RouteWithChildren<
         infer TChildPath,
         infer TChildPathParsers,
         infer TChildQueryParsers,
         infer TChildHash,
         infer TChildChildren
     >
-        ? Route<
+        ? RouteWithChildren<
               TPath extends "" ? TChildPath : TChildPath extends "" ? TPath : `${TPath}/${TChildPath}`,
               TPathParsers & TChildPathParsers,
               TSearchParsers & TChildQueryParsers,
@@ -18,9 +18,9 @@ type Route<TPath extends string, TPathParsers, TSearchParsers, THash extends str
               TChildChildren
           >
         : never;
-} & RouteInterface<TPath, TPathParsers, TSearchParsers, THash>;
+} & Route<TPath, TPathParsers, TSearchParsers, THash>;
 
-export interface RouteInterface<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
+interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
     path: `/${TPath}`;
     relativePath: PathWithoutIntermediateStars<TPath>;
     buildUrl: (
@@ -65,14 +65,14 @@ type SanitizedChildren<T> = T extends Record<infer TKey, unknown>
     : T;
 
 type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash extends string[], TSearchParsers> = {
-    [TKey in keyof TChildren]: TChildren[TKey] extends Route<
+    [TKey in keyof TChildren]: TChildren[TKey] extends RouteWithChildren<
         infer TChildPath,
         infer TChildPathParsers,
         infer TChildQueryParsers,
         infer TChildHash,
         infer TChildChildren
     >
-        ? Route<
+        ? RouteWithChildren<
               `${TPath}/${TChildPath}`,
               TPathParsers & TChildPathParsers,
               TSearchParsers & TChildQueryParsers,
@@ -104,7 +104,7 @@ interface RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, TChildre
     children?: TChildren;
 }
 
-export function route<
+function route<
     TChildren,
     TPath extends string = string,
     TPathParsers extends Partial<Record<ExtractRouteParams<SanitizedPath<TPath>>, Parser<any>>> = {},
@@ -118,13 +118,13 @@ export function route<
         search,
         hash,
     }: RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, SanitizedChildren<TChildren>> = {}
-): Route<TPath, TPathParsers, TSearchParsers, THash, TChildren> {
+): RouteWithChildren<TPath, TPathParsers, TSearchParsers, THash, TChildren> {
     const decoratedChildren = children ? decorateChildren(children, pathString, path, search, hash) : {};
 
     return {
         ...decoratedChildren,
         ...createRoute(pathString, { path, search, hash }),
-    } as Route<TPath, TPathParsers, TSearchParsers, THash, TChildren>;
+    } as RouteWithChildren<TPath, TPathParsers, TSearchParsers, THash, TChildren>;
 }
 
 function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren>(
@@ -158,7 +158,7 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
     ) as DecoratedChildren<TChildren, TPath, TPathParsers, THash, TSearchParsers>;
 }
 
-function isRoute(value: unknown): value is Route<any, any, any, any, any> {
+function isRoute(value: unknown): value is RouteWithChildren<any, any, any, any, any> {
     return Boolean(value && typeof value === "object" && "originalOptions" in value);
 }
 
@@ -170,7 +170,7 @@ function createRoute<
 >(
     path: SanitizedPath<TPath>,
     options: RouteOptions<TPathParsers, TSearchParsers, THash>
-): RouteInterface<TPath, TPathParsers, TSearchParsers, THash> {
+): Route<TPath, TPathParsers, TSearchParsers, THash> {
     const keys = getKeys(path);
     const pathWithoutIntermediateStars = removeIntermediateStars(path);
 
@@ -352,3 +352,5 @@ function getKeys<TPath extends string>(path: TPath): ExtractRouteParams<TPath>[]
 function removeIntermediateStars<TPath extends string>(path: TPath): PathWithoutIntermediateStars<TPath> {
     return path.replace("*/", "") as PathWithoutIntermediateStars<TPath>;
 }
+
+export { Route, RouteWithChildren, route };

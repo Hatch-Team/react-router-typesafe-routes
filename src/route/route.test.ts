@@ -1,6 +1,6 @@
 import { route } from "./route";
-import { numberParser, booleanParser, arrayOfParser, stringParser } from "../parser/stringParser";
-import { hashValues } from "./hashValues";
+import { numberParser, booleanParser, arrayOfParser, stringParser } from "../parser";
+import { hashValues } from "../hashValues";
 import { Location } from "react-router";
 
 it("provides absolute path", () => {
