@@ -1,4 +1,4 @@
-import { Parser, OriginalParams, RetrievedParams } from "../parser";
+import { Parser, OriginalParams, RetrievedParams, PickParsersWithFallback } from "../parser";
 import { generatePath, NavigateOptions, Location } from "react-router";
 import { createSearchParams, useSearchParams } from "react-router-dom";
 
@@ -42,7 +42,7 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
     parseSearch: (
         hookResult: ReturnType<typeof useSearchParams>
     ) => [
-        Partial<RetrievedParams<TSearchParsers>>,
+        Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>,
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
     ];
     parseHash: (location: Location) => THash[number] | undefined;
@@ -307,9 +307,10 @@ function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey
 function parseSearch<TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>>(
     searchParams: URLSearchParams,
     parsers?: TSearchParsers
-): Partial<RetrievedParams<TSearchParsers>> {
+): Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>> {
     if (!parsers) {
-        return {};
+        return {} as Partial<RetrievedParams<TSearchParsers>> &
+            RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
     }
 
     return Object.fromEntries(
