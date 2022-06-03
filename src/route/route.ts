@@ -1,6 +1,6 @@
 import { Parser, OriginalParams, RetrievedParams, PickParsersWithFallback } from "../parser";
 import { generatePath, NavigateOptions, Location } from "react-router";
-import { createSearchParams, useSearchParams } from "react-router-dom";
+import { createSearchParams } from "./helpers";
 
 type RouteWithChildren<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends RouteWithChildren<
@@ -40,7 +40,7 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
         "*"
     >;
     parseSearch: (
-        hookResult: ReturnType<typeof useSearchParams>
+        hookResult: [URLSearchParams, (params: Record<string, string | string[]>, options?: NavigateOptions) => void]
     ) => [
         Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>,
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
