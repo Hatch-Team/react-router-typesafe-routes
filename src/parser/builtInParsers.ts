@@ -1,12 +1,15 @@
 import { Parser, ParserWithFallback } from "./parser";
 import { withFallback } from "./withFallback";
+import { assertIsString, assertIsArray } from "./helpers";
 
 export const stringParser = withFallback<string>({
     store(value) {
-        return String(value);
+        return value;
     },
     retrieve(value) {
-        return String(value);
+        assertIsString(value);
+
+        return value;
     },
 });
 
@@ -15,6 +18,8 @@ export const numberParser = withFallback<number>({
         return String(value);
     },
     retrieve(value) {
+        assertIsString(value);
+
         const result = Number(value);
 
         if (Number.isNaN(result)) {
@@ -27,10 +32,12 @@ export const numberParser = withFallback<number>({
 
 export const booleanParser = withFallback<boolean>({
     store(value) {
-        return String(value);
+        return JSON.stringify(value);
     },
     retrieve(value) {
-        return Boolean(value);
+        assertIsString(value);
+
+        return JSON.parse(value);
     },
 });
 
@@ -39,9 +46,7 @@ export const dateParser = withFallback<Date>({
         return value.toISOString();
     },
     retrieve(value) {
-        if (!(typeof value === "string" || typeof value === "number")) {
-            throw new Error(`Expected ${value} to be string or number`);
-        }
+        assertIsString(value);
 
         const date = new Date(value);
 
@@ -87,11 +92,9 @@ export const arrayOfParser = <TOriginal, TStored, TRetrieved>(
             return values.map((value) => parser.store(value));
         },
         retrieve(value: unknown) {
-            if (Array.isArray(value)) {
-                return value.map((item) => parser.retrieve(item));
-            }
+            assertIsArray(value);
 
-            throw new Error("Expected array");
+            return value.map((item) => parser.retrieve(item));
         },
         isArray: true,
     });
