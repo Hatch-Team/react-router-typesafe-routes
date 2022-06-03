@@ -17,5 +17,9 @@ export function withFallback<TOriginal, TStored = string, TRetrieved = TOriginal
         isArray,
     });
 
-    return Object.assign(getParserMethods, { store, retrieve, isArray });
+    return Object.assign(getParserMethods, { store, retrieve, isArray }) as ParserWithFallback<
+        TOriginal,
+        TStored,
+        TRetrieved
+    >;
 }
