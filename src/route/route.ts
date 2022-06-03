@@ -41,7 +41,10 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
     >;
     parseSearch: (
         hookResult: ReturnType<typeof useSearchParams>
-    ) => [Partial<RetrievedParams<TSearchParsers>>, (params: Partial<OriginalParams<TSearchParsers>>) => void];
+    ) => [
+        Partial<RetrievedParams<TSearchParsers>>,
+        (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
+    ];
     parseHash: (location: Location) => THash[number] | undefined;
     originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash> & { pathString: TPath };
 }
