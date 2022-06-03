@@ -40,7 +40,10 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
         "*"
     >;
     parseSearch: (
-        hookResult: [URLSearchParams, (params: Record<string, string | string[]>, options?: NavigateOptions) => void]
+        hookResult: readonly [
+            URLSearchParams,
+            (params: Record<string, string | string[]>, options?: NavigateOptions) => void
+        ]
     ) => [
         Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>,
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
