@@ -3,13 +3,31 @@ import { generatePath, NavigateOptions, Location } from "react-router";
 import { createSearchParams } from "./helpers";
 
 type RouteWithChildren<
+    TChildren,
     TPath extends string,
     TPathParsers,
     TSearchParsers,
-    THash extends string[],
-    TChildren
+    THash extends string[]
 > = DecoratedChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash> &
     Route<TPath, TPathParsers, TSearchParsers, THash>;
+
+type DecoratedChildren<TChildren, TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> = {
+    [TKey in keyof TChildren]: TChildren[TKey] extends RouteWithChildren<
+        infer TChildChildren,
+        infer TChildPath,
+        infer TChildPathParsers,
+        infer TChildQueryParsers,
+        infer TChildHash
+    >
+        ? RouteWithChildren<
+              TChildChildren,
+              TPath extends "" ? TChildPath : TChildPath extends "" ? TPath : `${TPath}/${TChildPath}`,
+              TPathParsers & TChildPathParsers,
+              TSearchParsers & TChildQueryParsers,
+              THash | TChildHash
+          >
+        : TChildren[TKey];
+};
 
 interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
     path: `/${TPath}`;
@@ -61,24 +79,6 @@ type SanitizedChildren<T> = T extends Record<infer TKey, unknown>
         : T
     : T;
 
-type DecoratedChildren<TChildren, TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> = {
-    [TKey in keyof TChildren]: TChildren[TKey] extends RouteWithChildren<
-        infer TChildPath,
-        infer TChildPathParsers,
-        infer TChildQueryParsers,
-        infer TChildHash,
-        infer TChildChildren
-    >
-        ? RouteWithChildren<
-              TPath extends "" ? TChildPath : TChildPath extends "" ? TPath : `${TPath}/${TChildPath}`,
-              TPathParsers & TChildPathParsers,
-              TSearchParsers & TChildQueryParsers,
-              THash | TChildHash,
-              TChildChildren
-          >
-        : TChildren[TKey];
-};
-
 type ExtractRouteParams<TPath extends string> = string extends TPath
     ? never
     : TPath extends `${infer TStart}:${infer TParam}/${infer TRest}`
@@ -95,7 +95,7 @@ interface RouteOptions<TPathParsers, TSearchParsers, THash> {
     hash?: THash;
 }
 
-interface RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, TChildren>
+interface RouteOptionsWithChildren<TChildren, TPathParsers, TSearchParsers, THash>
     extends RouteOptions<TPathParsers, TSearchParsers, THash> {
     children?: TChildren;
 }
@@ -109,35 +109,27 @@ function route<
     /* eslint-enable */
     THash extends string[] = never[]
 >(
-    pathString: SanitizedPath<TPath>,
-    {
-        path,
-        children,
-        search,
-        hash,
-    }: RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, SanitizedChildren<TChildren>> = {}
-): RouteWithChildren<TPath, TPathParsers, TSearchParsers, THash, TChildren> {
-    const decoratedChildren = children ? decorateChildren(children, pathString, path, search, hash) : {};
+    path: SanitizedPath<TPath>,
+    options: RouteOptionsWithChildren<SanitizedChildren<TChildren>, TPathParsers, TSearchParsers, THash> = {}
+): RouteWithChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash> {
+    const decoratedChildren = decorateChildren(path, options);
 
     return {
         ...decoratedChildren,
-        ...createRoute(pathString, { path, search, hash }),
-    } as RouteWithChildren<TPath, TPathParsers, TSearchParsers, THash, TChildren>;
+        ...createRoute(path, options),
+    };
 }
 
 function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren>(
-    children: TChildren,
     path: SanitizedPath<TPath>,
-    pathParsers?: TPathParsers,
-    searchParsers?: TSearchParsers,
-    hash?: THash
+    options: RouteOptionsWithChildren<TChildren, TPathParsers, TSearchParsers, THash>
 ): DecoratedChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash> {
     return Object.fromEntries(
-        Object.entries(children).map(([key, value]) => [
+        Object.entries(options.children ?? {}).map(([key, value]) => [
             key,
             isRoute(value)
                 ? {
-                      ...decorateChildren(value, path, pathParsers, searchParsers, hash),
+                      ...decorateChildren(path, { ...options, children: value }),
                       ...createRoute(
                           path === ""
                               ? value.originalOptions.pathString
@@ -145,12 +137,12 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
                               ? path
                               : `${path}/${value.originalOptions.pathString}`,
                           {
-                              path: { ...pathParsers, ...value.originalOptions.path },
+                              path: { ...options.path, ...value.originalOptions.path },
                               search: {
-                                  ...searchParsers,
+                                  ...options.search,
                                   ...value.originalOptions.search,
                               },
-                              hash: mergeHashValues(hash, value.originalOptions.hash),
+                              hash: mergeHashValues(options.hash, value.originalOptions.hash),
                           }
                       ),
                   }
@@ -161,7 +153,7 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
 
 function isRoute(
     value: unknown
-): value is RouteWithChildren<string, Record<never, never>, Record<never, never>, string[], unknown> {
+): value is RouteWithChildren<unknown, string, Record<never, never>, Record<never, never>, string[]> {
     return Boolean(value && typeof value === "object" && "originalOptions" in value);
 }
 
@@ -196,7 +188,7 @@ function createRoute<
     function buildHash(hash?: THash[number]) {
         const storedHash = storeHash(hash, options.hash);
 
-        return storedHash !== null ? `#${storedHash}` : "";
+        return storedHash !== undefined ? `#${storedHash}` : "";
     }
 
     return {
@@ -260,12 +252,12 @@ function storeSearchParams(
     ) as Record<string, string | string[]>;
 }
 
-function storeHash(hash?: string, hashValues?: string[]): string | null {
+function storeHash(hash?: string, hashValues?: string[]): string | undefined {
     if (hash && (hashValues?.includes(hash) || hashValues?.length === 0)) {
         return hash;
     }
 
-    return null;
+    return undefined;
 }
 
 function mergeHashValues<T, U>(firstHash?: T[], secondHash?: U[]): (T | U)[] | undefined {
