@@ -24,7 +24,7 @@
         "format": "prettier --write --ignore-unknown .",
         "build": "rimraf dist && tsc --project tsconfig.build.json",
         "format:check": "prettier --check .",
-        "lint": "eslint --max-warnings=0 .",
+        "lint": "eslint --max-warnings=0 --report-unused-disable-directives .",
         "test": "jest",
         "prepack": "yarn build",
         "prepublish": "yarn format:check && yarn lint && yarn test"

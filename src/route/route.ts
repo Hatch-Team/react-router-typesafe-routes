@@ -86,7 +86,7 @@ type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash exte
               TChildChildren
           > &
               DecoratedChildren<TChildren[TKey], TPath, TPathParsers, THash, TSearchParsers>
-        : {};
+        : Record<never, never>;
 };
 
 type ExtractRouteParams<TPath extends string> = string extends TPath
@@ -113,8 +113,10 @@ interface RouteOptionsWithChildren<TPathParsers, TSearchParsers, THash, TChildre
 function route<
     TChildren,
     TPath extends string = string,
-    TPathParsers extends Partial<Record<ExtractRouteParams<SanitizedPath<TPath>>, Parser<any>>> = {},
-    TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = {},
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    TPathParsers extends Partial<Record<ExtractRouteParams<SanitizedPath<TPath>>, Parser<any>>> = Record<never, never>,
+    TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = Record<never, never>,
+    /* eslint-enable */
     THash extends string[] = never[]
 >(
     pathString: SanitizedPath<TPath>,
@@ -147,15 +149,18 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
                 ? {
                       ...decorateChildren(value, path, pathParsers, searchParsers, hash),
                       ...createRoute(
-                          (path === ""
+                          path === ""
                               ? value.originalOptions.pathString
                               : value.originalOptions.pathString === ""
                               ? path
-                              : `${path}/${value.originalOptions.pathString}`) as SanitizedPath<any>,
+                              : `${path}/${value.originalOptions.pathString}`,
                           {
-                              path: { ...pathParsers, ...value.originalOptions.path },
-                              search: { ...searchParsers, ...value.originalOptions.search },
-                              hash: mergeHashValues(hash, value.originalOptions.hash as string[] | undefined),
+                              path: { ...pathParsers, ...(value.originalOptions.path as Record<string, unknown>) },
+                              search: {
+                                  ...searchParsers,
+                                  ...(value.originalOptions.search as Record<string, unknown>),
+                              },
+                              hash: mergeHashValues(hash, value.originalOptions.hash),
                           }
                       ),
                   }
@@ -164,14 +169,16 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
     ) as DecoratedChildren<TChildren, TPath, TPathParsers, THash, TSearchParsers>;
 }
 
-function isRoute(value: unknown): value is RouteWithChildren<any, any, any, any, any> {
+function isRoute(value: unknown): value is RouteWithChildren<string, unknown, unknown, string[], unknown> {
     return Boolean(value && typeof value === "object" && "originalOptions" in value);
 }
 
 function createRoute<
     TPath extends string,
-    TPathParsers extends Partial<Record<ExtractRouteParams<SanitizedPath<TPath>>, Parser<any>>> = {},
-    TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = {},
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    TPathParsers extends Partial<Record<ExtractRouteParams<SanitizedPath<TPath>>, Parser<any>>> = Record<never, never>,
+    TSearchParsers extends Partial<Record<string, Parser<any, string | string[]>>> = Record<never, never>,
+    /* eslint-enable */
     THash extends string[] = never[]
 >(
     path: SanitizedPath<TPath>,
@@ -243,20 +250,22 @@ function storePathParams(
                     : null,
             ])
             .filter(([, value]) => value !== null)
-    );
+    ) as Record<string, string>;
 }
 
 function storeSearchParams(
     params?: Record<string, unknown>,
     parsers?: Partial<Record<string, Parser<unknown, string | string[]>>>
 ): Record<string, string | string[]> {
-    return params
-        ? Object.fromEntries(
-              Object.entries(params)
-                  .map(([key, value]) => [key, parsers?.[key] ? parsers[key]?.store(value) : null])
-                  .filter(([, value]) => value !== null)
-          )
-        : {};
+    return (
+        params
+            ? Object.fromEntries(
+                  Object.entries(params)
+                      .map(([key, value]) => [key, parsers?.[key] ? parsers[key]?.store(value) : null])
+                      .filter(([, value]) => value !== null)
+              )
+            : {}
+    ) as Record<string, string | string[]>;
 }
 
 function storeHash(hash?: string, hashValues?: string[]): string | null {
@@ -279,7 +288,7 @@ function mergeHashValues<T, U>(firstHash?: T[], secondHash?: U[]): (T | U)[] | u
     return [...(firstHash ?? []), ...(secondHash ?? [])];
 }
 
-function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey, Parser<string>>>>(
+function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey, Parser<unknown>>>>(
     keys: TKey[],
     pathParams: Record<string, string | undefined>,
     parsers?: TPathParsers
@@ -288,7 +297,7 @@ function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey
         throw new Error("Insufficient params");
     }
 
-    let result: Record<string, unknown> = {};
+    const result: Record<string, unknown> = {};
 
     keys.forEach((key) => {
         if (parsers?.[key]) {
@@ -332,7 +341,7 @@ function parseSearch<TSearchParsers extends Partial<Record<string, Parser<unknow
                 return [key, nextValue];
             })
             .filter(([, value]) => value !== null)
-    );
+    ) as Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
 }
 
 function parseHash(hash?: string, hashValues?: string[]): string | undefined {
