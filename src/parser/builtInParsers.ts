@@ -1,6 +1,6 @@
 import { Parser, ParserWithFallback } from "./parser";
 import { withFallback } from "./withFallback";
-import { assertIsString, assertIsArray } from "./helpers";
+import { assertIsString, assertIsArray, assertIsBoolean, assertIsNotNaN, assertIsValidDate } from "./helpers";
 
 export const stringParser = withFallback<string>({
     store(value) {
@@ -20,13 +20,10 @@ export const numberParser = withFallback<number>({
     retrieve(value) {
         assertIsString(value);
 
-        const result = Number(value);
+        const parsedValue = Number(value);
+        assertIsNotNaN(parsedValue, `Couldn't transform ${value} to number`);
 
-        if (Number.isNaN(result)) {
-            throw new Error(`Couldn't transform ${value} to number`);
-        }
-
-        return result;
+        return parsedValue;
     },
 });
 
@@ -37,7 +34,10 @@ export const booleanParser = withFallback<boolean>({
     retrieve(value) {
         assertIsString(value);
 
-        return JSON.parse(value);
+        const parsedValue: unknown = JSON.parse(value);
+        assertIsBoolean(parsedValue);
+
+        return parsedValue;
     },
 });
 
@@ -48,13 +48,10 @@ export const dateParser = withFallback<Date>({
     retrieve(value) {
         assertIsString(value);
 
-        const date = new Date(value);
+        const parsedValue = new Date(value);
+        assertIsValidDate(parsedValue, `Couldn't transform ${value} to date`);
 
-        if (Number.isNaN(date.getTime())) {
-            throw new Error(`Couldn't transform ${value} to date`);
-        }
-
-        return date;
+        return parsedValue;
     },
 });
 
@@ -79,7 +76,7 @@ export const oneOfParser = <T extends (string | number | boolean)[]>(...values: 
                 }
             }
 
-            throw new Error(`No matching value for ${value}`);
+            throw new Error(`No matching value for ${String(value)}`);
         },
     });
 };
