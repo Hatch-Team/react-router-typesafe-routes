@@ -24,10 +24,10 @@
         "format": "prettier --write --ignore-unknown .",
         "build": "rimraf dist && tsc --project tsconfig.build.json",
         "format:check": "prettier --check .",
-        "lint": "eslint .",
+        "lint": "eslint --max-warnings=0 .",
         "test": "jest",
         "prepack": "yarn build",
-        "prepublish": "yarn format:check && yarn test"
+        "prepublish": "yarn format:check && yarn lint && yarn test"
     },
     "devDependencies": {
         "@types/jest": "^27.5.1",
