@@ -2,23 +2,14 @@ import { Parser, OriginalParams, RetrievedParams, PickParsersWithFallback } from
 import { generatePath, NavigateOptions, Location } from "react-router";
 import { createSearchParams } from "./helpers";
 
-type RouteWithChildren<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren> = {
-    [TKey in keyof TChildren]: TChildren[TKey] extends RouteWithChildren<
-        infer TChildPath,
-        infer TChildPathParsers,
-        infer TChildQueryParsers,
-        infer TChildHash,
-        infer TChildChildren
-    >
-        ? RouteWithChildren<
-              TPath extends "" ? TChildPath : TChildPath extends "" ? TPath : `${TPath}/${TChildPath}`,
-              TPathParsers & TChildPathParsers,
-              TSearchParsers & TChildQueryParsers,
-              THash | TChildHash,
-              TChildChildren
-          >
-        : never;
-} & Route<TPath, TPathParsers, TSearchParsers, THash>;
+type RouteWithChildren<
+    TPath extends string,
+    TPathParsers,
+    TSearchParsers,
+    THash extends string[],
+    TChildren
+> = DecoratedChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash> &
+    Route<TPath, TPathParsers, TSearchParsers, THash>;
 
 interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
     path: `/${TPath}`;
@@ -70,7 +61,7 @@ type SanitizedChildren<T> = T extends Record<infer TKey, unknown>
         : T
     : T;
 
-type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash extends string[], TSearchParsers> = {
+type DecoratedChildren<TChildren, TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> = {
     [TKey in keyof TChildren]: TChildren[TKey] extends RouteWithChildren<
         infer TChildPath,
         infer TChildPathParsers,
@@ -79,14 +70,13 @@ type DecoratedChildren<TChildren, TPath extends string, TPathParsers, THash exte
         infer TChildChildren
     >
         ? RouteWithChildren<
-              `${TPath}/${TChildPath}`,
+              TPath extends "" ? TChildPath : TChildPath extends "" ? TPath : `${TPath}/${TChildPath}`,
               TPathParsers & TChildPathParsers,
               TSearchParsers & TChildQueryParsers,
               THash | TChildHash,
               TChildChildren
-          > &
-              DecoratedChildren<TChildren[TKey], TPath, TPathParsers, THash, TSearchParsers>
-        : Record<never, never>;
+          >
+        : TChildren[TKey];
 };
 
 type ExtractRouteParams<TPath extends string> = string extends TPath
@@ -141,7 +131,7 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
     pathParsers?: TPathParsers,
     searchParsers?: TSearchParsers,
     hash?: THash
-): DecoratedChildren<TChildren, TPath, TPathParsers, THash, TSearchParsers> {
+): DecoratedChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash> {
     return Object.fromEntries(
         Object.entries(children).map(([key, value]) => [
             key,
@@ -166,7 +156,7 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
                   }
                 : value,
         ])
-    ) as DecoratedChildren<TChildren, TPath, TPathParsers, THash, TSearchParsers>;
+    ) as DecoratedChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash>;
 }
 
 function isRoute(
