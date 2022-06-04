@@ -58,7 +58,8 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
     ];
     parseHash: (location: Location) => THash[number] | undefined;
-    originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash> & { pathString: TPath };
+    originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash>;
+    originalPath: TPath;
 }
 
 type PickWithFallback<T, K extends string, F> = { [P in K]: P extends keyof T ? T[P] : F };
@@ -132,10 +133,10 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
                       ...decorateChildren(path, { ...options, children: value }),
                       ...createRoute(
                           path === ""
-                              ? value.originalOptions.pathString
-                              : value.originalOptions.pathString === ""
+                              ? value.originalPath
+                              : value.originalPath === ""
                               ? path
-                              : `${path}/${value.originalOptions.pathString}`,
+                              : `${path}/${value.originalPath}`,
                           {
                               path: { ...options.path, ...value.originalOptions.path },
                               search: {
@@ -194,7 +195,8 @@ function createRoute<
     return {
         relativePath: pathWithoutIntermediateStars,
         path: `/${path}`,
-        originalOptions: { ...options, pathString: path },
+        originalOptions: { ...options },
+        originalPath: path,
         buildUrl: (params, searchParams, hash) => {
             return `/${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
         },
