@@ -155,10 +155,10 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
                               ? path
                               : `${path}/${value.originalOptions.pathString}`,
                           {
-                              path: { ...pathParsers, ...(value.originalOptions.path as Record<string, unknown>) },
+                              path: { ...pathParsers, ...value.originalOptions.path },
                               search: {
                                   ...searchParsers,
-                                  ...(value.originalOptions.search as Record<string, unknown>),
+                                  ...value.originalOptions.search,
                               },
                               hash: mergeHashValues(hash, value.originalOptions.hash),
                           }
@@ -169,7 +169,9 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
     ) as DecoratedChildren<TChildren, TPath, TPathParsers, THash, TSearchParsers>;
 }
 
-function isRoute(value: unknown): value is RouteWithChildren<string, unknown, unknown, string[], unknown> {
+function isRoute(
+    value: unknown
+): value is RouteWithChildren<string, Record<never, never>, Record<never, never>, string[], unknown> {
     return Boolean(value && typeof value === "object" && "originalOptions" in value);
 }
 
