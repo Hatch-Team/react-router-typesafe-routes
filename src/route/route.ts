@@ -1,6 +1,7 @@
 import { Parser, OriginalParams, RetrievedParams, PickParsersWithFallback } from "../parser";
 import { generatePath, NavigateOptions, Location } from "react-router";
 import { createSearchParams } from "./helpers";
+import { useMemo } from "react";
 
 type RouteWithChildren<
     TChildren,
@@ -42,7 +43,7 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
         searchParams?: Partial<OriginalParams<TSearchParsers>>,
         hash?: THash[number]
     ) => string;
-    parsePath: (
+    useParams: (
         params: Record<string, string | undefined>
     ) => PartialByKey<
         PickWithFallback<RetrievedParams<TPathParsers>, ExtractRouteParams<SanitizedPath<TPath>>, string>,
@@ -203,8 +204,8 @@ function createRoute<
         buildRelativeUrl: (params, searchParams, hash) => {
             return `${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
         },
-        parsePath: (params) => {
-            return parsePath(keys, params, options.path);
+        useParams: (params) => {
+            return useMemo(() => parsePath(keys, params, options.path), [params]);
         },
         parseSearch: ([urlSearchParams, setUrlSearchParams]) => {
             return [
