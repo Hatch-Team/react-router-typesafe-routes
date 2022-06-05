@@ -4,6 +4,12 @@ export function assertIsString(value: unknown, message?: string): asserts value 
     }
 }
 
+export function assertIsNumber(value: unknown, message?: string): asserts value is number {
+    if (typeof value !== "number") {
+        throw new Error(message ?? `Expected ${String(value)} to be a number`);
+    }
+}
+
 export function assertIsNotNaN(value: unknown, message?: string): asserts value is number {
     if (Number.isNaN(value)) {
         throw new Error(message ?? `Unexpected NaN`);

@@ -1,6 +1,6 @@
 import { Parser, ParserWithFallback } from "./parser";
 import { withFallback } from "./withFallback";
-import { assertIsString, assertIsArray, assertIsBoolean, assertIsNotNaN, assertIsValidDate } from "./helpers";
+import { assertIsString, assertIsArray, assertIsBoolean, assertIsValidDate, assertIsNumber } from "./helpers";
 
 export const stringParser = withFallback<string>({
     store(value) {
@@ -15,13 +15,13 @@ export const stringParser = withFallback<string>({
 
 export const numberParser = withFallback<number>({
     store(value) {
-        return String(value);
+        return JSON.stringify(value);
     },
     retrieve(value) {
         assertIsString(value);
 
-        const parsedValue = Number(value);
-        assertIsNotNaN(parsedValue, `Couldn't transform ${value} to number`);
+        const parsedValue: unknown = JSON.parse(value);
+        assertIsNumber(parsedValue);
 
         return parsedValue;
     },

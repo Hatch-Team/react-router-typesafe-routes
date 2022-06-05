@@ -320,10 +320,28 @@ it("allows explicit star path param parsing", () => {
     expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ "*": "1" })).toEqual({ "*": 1 });
 });
 
+it("allows explicit star path param parsing (with fallback)", () => {
+    const GRANDCHILD = route("grand/*", { params: { "*": numberParser(42) } });
+    const CHILD = route("child", {}, { GRANDCHILD });
+    const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams>, { "*": number }>>(true);
+
+    expect(TEST_ROUTE.retrieveParams({ "*": "" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ "*": "" })).toEqual({ "*": 42 });
+});
+
 it("silently omits invalid star path param", () => {
     const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams>, { "*"?: number }>>(true);
 
     expect(TEST_ROUTE.retrieveParams({ "*": "foo" })).toEqual({});
     expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "foo" })).toEqual({});
@@ -334,6 +352,10 @@ it("allows intermediate star param parsing", () => {
     const GRANDCHILD = route("grand", {});
     const CHILD = route("child/*", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.retrieveParams>, { "*": string }>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams>, { "*": string }>>(true);
 
     expect(TEST_ROUTE.retrieveParams({ "*": "foo/bar" })).toEqual({});
     expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
