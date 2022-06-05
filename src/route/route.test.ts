@@ -9,6 +9,10 @@ it("provides absolute path", () => {
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<typeof TEST_ROUTE.path, "/test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.path, "/test/child">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.path, "/test/child/grand">>(true);
+
     expect(TEST_ROUTE.path).toEqual("/test");
     expect(TEST_ROUTE.CHILD.path).toEqual("/test/child");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/child/grand");
@@ -18,6 +22,10 @@ it("preserves intermediate stars in absolute path", () => {
     const GRANDCHILD = route("grand");
     const CHILD = route("child/*", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<typeof TEST_ROUTE.path, "/test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.path, "/test/child/*">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.path, "/test/child/*/grand">>(true);
 
     expect(TEST_ROUTE.path).toEqual("/test");
     expect(TEST_ROUTE.CHILD.path).toEqual("/test/child/*");
@@ -29,6 +37,10 @@ it("provides relative path", () => {
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<typeof TEST_ROUTE.relativePath, "test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.relativePath, "test/child">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.relativePath, "test/child/grand">>(true);
+
     expect(TEST_ROUTE.relativePath).toEqual("test");
     expect(TEST_ROUTE.CHILD.relativePath).toEqual("test/child");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/child/grand");
@@ -39,6 +51,10 @@ it("removes intermediate stars from relative path", () => {
     const CHILD = route("child/*", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<typeof TEST_ROUTE.relativePath, "test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.relativePath, "test/child/*">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.relativePath, "test/child/grand">>(true);
+
     expect(TEST_ROUTE.relativePath).toEqual("test");
     expect(TEST_ROUTE.CHILD.relativePath).toEqual("test/child/*");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.relativePath).toEqual("test/child/grand");
@@ -48,6 +64,14 @@ it("allows empty segment at the beginning of the route", () => {
     const GRANDCHILD = route("grand");
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("", {}, { CHILD });
+
+    assert<IsExact<typeof TEST_ROUTE.path, "/">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.path, "/child">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.path, "/child/grand">>(true);
+
+    assert<IsExact<typeof TEST_ROUTE.relativePath, "">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.relativePath, "child">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.relativePath, "child/grand">>(true);
 
     expect(TEST_ROUTE.path).toEqual("/");
     expect(TEST_ROUTE.CHILD.path).toEqual("/child");
@@ -63,6 +87,14 @@ it("allows empty segment in the middle of the route", () => {
     const CHILD = route("", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<typeof TEST_ROUTE.path, "/test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.path, "/test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.path, "/test/grand">>(true);
+
+    assert<IsExact<typeof TEST_ROUTE.relativePath, "test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.relativePath, "test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.relativePath, "test/grand">>(true);
+
     expect(TEST_ROUTE.path).toEqual("/test");
     expect(TEST_ROUTE.CHILD.path).toEqual("/test");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.path).toEqual("/test/grand");
@@ -76,6 +108,14 @@ it("allows empty segment at the end of the route", () => {
     const GRANDCHILD = route("");
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<typeof TEST_ROUTE.path, "/test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.path, "/test/child">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.path, "/test/child">>(true);
+
+    assert<IsExact<typeof TEST_ROUTE.relativePath, "test">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.relativePath, "test/child">>(true);
+    assert<IsExact<typeof TEST_ROUTE.CHILD.GRANDCHILD.relativePath, "test/child">>(true);
 
     expect(TEST_ROUTE.path).toEqual("/test");
     expect(TEST_ROUTE.CHILD.path).toEqual("/test/child");
@@ -91,6 +131,10 @@ it("allows implicit path params", () => {
     const CHILD = route("child/:id", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], { id: string }>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { id: string }>>(true);
+
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({ id: "42" })).toEqual("/test/child/42");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: "24" })).toEqual("/test/child/24/grand");
@@ -100,6 +144,10 @@ it("allows explicit path params", () => {
     const GRANDCHILD = route("grand");
     const CHILD = route("child/:id", { params: { id: numberParser } }, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], { id: number }>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { id: number }>>(true);
 
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({ id: 42 })).toEqual("/test/child/42");
@@ -111,6 +159,10 @@ it("allows to mix explicit and implicit path params", () => {
     const CHILD = route("child/:id/:value", { params: { id: numberParser } }, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], { id: number; value: string }>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { id: number; value: string }>>(true);
+
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({ id: 42, value: "foo" })).toEqual("/test/child/42/foo");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: 24, value: "bar" })).toEqual("/test/child/24/bar/grand");
@@ -120,6 +172,12 @@ it("allows to mix explicit and implicit path params across multiple routes", () 
     const GRANDCHILD = route("grand/:name");
     const CHILD = route("child/:id/:value", { params: { id: numberParser } }, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], { id: number; value: string }>>(true);
+    assert<
+        IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { id: number; value: string; name: string }>
+    >(true);
 
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({ id: 42, value: "foo" })).toEqual("/test/child/42/foo");
@@ -133,6 +191,10 @@ it("prioritizes children when mixing path params with the same name", () => {
     const CHILD = route("child/:id/:value", { params: { id: numberParser } }, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], { id: number; value: string }>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { id: boolean; value: string }>>(true);
+
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({ id: 42, value: "foo" })).toEqual("/test/child/42/foo");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ id: false, value: "bar" })).toEqual(
@@ -145,6 +207,10 @@ it("allows implicit star path param", () => {
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { "*"?: string }>>(true);
+
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({})).toEqual("/test/child");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({ "*": "star/param" })).toEqual("/test/child/grand/star/param");
@@ -154,6 +220,10 @@ it("allows explicit star path param", () => {
     const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { "*"?: number }>>(true);
 
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({})).toEqual("/test/child");
@@ -165,6 +235,10 @@ it("allows star path param to be optional", () => {
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { "*"?: number }>>(true);
+
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({})).toEqual("/test/child");
     expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({})).toEqual("/test/child/grand");
@@ -174,6 +248,10 @@ it("allows star path param in the middle of combined path", () => {
     const GRANDCHILD = route("grand");
     const CHILD = route("child/*", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<Parameters<typeof TEST_ROUTE.buildUrl>[0], Record<never, never>>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.buildUrl>[0], { "*"?: string }>>(true);
+    assert<IsExact<Parameters<typeof TEST_ROUTE.CHILD.GRANDCHILD.buildUrl>[0], { "*"?: string }>>(true);
 
     expect(TEST_ROUTE.buildUrl({ "*": "foo" })).toEqual("/test");
     expect(TEST_ROUTE.CHILD.buildUrl({ "*": "foo" })).toEqual("/test/child/foo");

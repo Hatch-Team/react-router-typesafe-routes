@@ -78,8 +78,8 @@ type PartialByKey<T, K> = K extends keyof T ? Omit<T, K> & Partial<Pick<T, K>> :
 
 type SanitizedPath<T> = T extends `/${string}` ? never : T extends `${string}/` ? never : T;
 
-type PathWithoutIntermediateStars<T extends string> = T extends `${infer TStart}*/`
-    ? PathWithoutIntermediateStars<TStart>
+type PathWithoutIntermediateStars<T extends string> = T extends `${infer TStart}*/${infer TEnd}`
+    ? PathWithoutIntermediateStars<`${TStart}${TEnd}`>
     : T;
 
 type SanitizedChildren<T> = T extends Record<infer TKey, unknown>
