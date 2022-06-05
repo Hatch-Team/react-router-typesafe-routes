@@ -92,8 +92,8 @@ type ExtractRouteParams<TPath extends string> = string extends TPath
     : never;
 
 interface RouteOptions<TPathParsers, TSearchParsers, THash> {
-    path?: TPathParsers;
-    search?: TSearchParsers;
+    params?: TPathParsers;
+    searchParams?: TSearchParsers;
     hash?: THash;
 }
 
@@ -139,10 +139,10 @@ function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, TH
                               ? path
                               : `${path}/${value._originalPath}`,
                           {
-                              path: { ...options.path, ...value._originalOptions.path },
-                              search: {
-                                  ...options.search,
-                                  ...value._originalOptions.search,
+                              params: { ...options.params, ...value._originalOptions.params },
+                              searchParams: {
+                                  ...options.searchParams,
+                                  ...value._originalOptions.searchParams,
                               },
                               hash: mergeHashValues(options.hash, value._originalOptions.hash),
                           }
@@ -176,12 +176,12 @@ function createRoute<
     function buildPath(
         params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">
     ) {
-        const storedPathParams = storePathParams(keys, params, options.path);
+        const storedPathParams = storePathParams(keys, params, options.params);
         return generatePath(pathWithoutIntermediateStars, storedPathParams);
     }
 
     function buildSearch(params?: Partial<OriginalParams<TSearchParsers>>) {
-        const storedSearchParams = storeSearchParams(params, options.search);
+        const storedSearchParams = storeSearchParams(params, options.searchParams);
         const searchString = createSearchParams(storedSearchParams).toString();
 
         return searchString ? `?${searchString}` : "";
@@ -205,13 +205,13 @@ function createRoute<
             return `${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
         },
         useParams: (params) => {
-            return useMemo(() => parsePath(keys, params, options.path), [params]);
+            return useMemo(() => parsePath(keys, params, options.params), [params]);
         },
         parseSearch: ([urlSearchParams, setUrlSearchParams]) => {
             return [
-                parseSearch(urlSearchParams, options.search),
+                parseSearch(urlSearchParams, options.searchParams),
                 (params?: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => {
-                    setUrlSearchParams(storeSearchParams(params, options.search), navigateOptions);
+                    setUrlSearchParams(storeSearchParams(params, options.searchParams), navigateOptions);
                 },
             ];
         },

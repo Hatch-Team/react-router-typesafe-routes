@@ -97,7 +97,7 @@ it("allows implicit path params", () => {
 
 it("allows explicit path params", () => {
     const GRANDCHILD = route("grand");
-    const CHILD = route("child/:id", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const CHILD = route("child/:id", { params: { id: numberParser }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
@@ -107,7 +107,7 @@ it("allows explicit path params", () => {
 
 it("allows to mix explicit and implicit path params", () => {
     const GRANDCHILD = route("grand");
-    const CHILD = route("child/:id/:value", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const CHILD = route("child/:id/:value", { params: { id: numberParser }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
@@ -117,7 +117,7 @@ it("allows to mix explicit and implicit path params", () => {
 
 it("allows to mix explicit and implicit path params across multiple routes", () => {
     const GRANDCHILD = route("grand/:name");
-    const CHILD = route("child/:id/:value", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const CHILD = route("child/:id/:value", { params: { id: numberParser }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
@@ -128,8 +128,8 @@ it("allows to mix explicit and implicit path params across multiple routes", () 
 });
 
 it("prioritizes children when mixing path params with the same name", () => {
-    const GRANDCHILD = route("grand/:id", { path: { id: booleanParser } });
-    const CHILD = route("child/:id/:value", { path: { id: numberParser }, children: { GRANDCHILD } });
+    const GRANDCHILD = route("grand/:id", { params: { id: booleanParser } });
+    const CHILD = route("child/:id/:value", { params: { id: numberParser }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.buildUrl({})).toEqual("/test");
@@ -150,7 +150,7 @@ it("allows implicit star path param", () => {
 });
 
 it("allows explicit star path param", () => {
-    const GRANDCHILD = route("grand/*", { path: { "*": numberParser } });
+    const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", { children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
@@ -160,7 +160,7 @@ it("allows explicit star path param", () => {
 });
 
 it("allows star path param to be optional", () => {
-    const GRANDCHILD = route("grand/*", { path: { "*": numberParser } });
+    const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", { children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
@@ -180,7 +180,7 @@ it("allows star path param in the middle of combined path", () => {
 });
 
 it("allows search params", () => {
-    const GRANDCHILD = route("grand", { search: { foo: numberParser } });
+    const GRANDCHILD = route("grand", { searchParams: { foo: numberParser } });
     const CHILD = route("child", { children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
@@ -190,8 +190,8 @@ it("allows search params", () => {
 });
 
 it("allows to mix search params across multiple routes", () => {
-    const GRANDCHILD = route("grand", { search: { foo: numberParser } });
-    const CHILD = route("child", { search: { bar: arrayOfParser(numberParser) }, children: { GRANDCHILD } });
+    const GRANDCHILD = route("grand", { searchParams: { foo: numberParser } });
+    const CHILD = route("child", { searchParams: { bar: arrayOfParser(numberParser) }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.buildUrl({}, {})).toEqual("/test");
@@ -202,8 +202,8 @@ it("allows to mix search params across multiple routes", () => {
 });
 
 it("prioritizes children when mixing search params with the same name", () => {
-    const GRANDCHILD = route("grand", { search: { foo: numberParser } });
-    const CHILD = route("child", { search: { foo: arrayOfParser(numberParser) }, children: { GRANDCHILD } });
+    const GRANDCHILD = route("grand", { searchParams: { foo: numberParser } });
+    const CHILD = route("child", { searchParams: { foo: arrayOfParser(numberParser) }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.buildUrl({}, {})).toEqual("/test");
@@ -262,7 +262,7 @@ it.skip("allows implicit path params parsing", () => {
 });
 
 it.skip("allows explicit path params parsing", () => {
-    const GRANDCHILD = route("grand/:id", { path: { id: numberParser } });
+    const GRANDCHILD = route("grand/:id", { params: { id: numberParser } });
     const CHILD = route("child", { children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
@@ -272,8 +272,8 @@ it.skip("allows explicit path params parsing", () => {
 });
 
 it.skip("allows to mix path params parsing across multiple routes", () => {
-    const GRANDCHILD = route("grand/:id", { path: { id: numberParser } });
-    const CHILD = route("child/:childId", { path: { childId: numberParser }, children: { GRANDCHILD } });
+    const GRANDCHILD = route("grand/:id", { params: { id: numberParser } });
+    const CHILD = route("child/:childId", { params: { childId: numberParser }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.useParams({ id: "1", childId: "2" })).toEqual({});
@@ -282,8 +282,8 @@ it.skip("allows to mix path params parsing across multiple routes", () => {
 });
 
 it.skip("throws if required path params are invalid", () => {
-    const GRANDCHILD = route("grand/:id", { path: { id: numberParser } });
-    const CHILD = route("child/:childId", { path: { childId: numberParser }, children: { GRANDCHILD } });
+    const GRANDCHILD = route("grand/:id", { params: { id: numberParser } });
+    const CHILD = route("child/:childId", { params: { childId: numberParser }, children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
     expect(TEST_ROUTE.useParams({ id: "foo", childId: "2" })).toEqual({});
@@ -302,7 +302,7 @@ it.skip("allows implicit star path param parsing", () => {
 });
 
 it.skip("allows explicit star path param parsing", () => {
-    const GRANDCHILD = route("grand/*", { path: { "*": numberParser } });
+    const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", { children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
@@ -312,7 +312,7 @@ it.skip("allows explicit star path param parsing", () => {
 });
 
 it.skip("silently omits invalid star path param", () => {
-    const GRANDCHILD = route("grand/*", { path: { "*": numberParser } });
+    const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", { children: { GRANDCHILD } });
     const TEST_ROUTE = route("test", { children: { CHILD } });
 
@@ -332,9 +332,9 @@ it.skip("allows intermediate star param parsing", () => {
 });
 
 it("allows search params parsing", () => {
-    const GRANDCHILD = route("grand", { search: { foo: numberParser } });
+    const GRANDCHILD = route("grand", { searchParams: { foo: numberParser } });
     const CHILD = route("child", {
-        search: { foo: stringParser, arr: arrayOfParser(numberParser) },
+        searchParams: { foo: stringParser, arr: arrayOfParser(numberParser) },
         children: { GRANDCHILD },
     });
     const TEST_ROUTE = route("test", { children: { CHILD } });
