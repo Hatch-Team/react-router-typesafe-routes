@@ -1,6 +1,7 @@
 import { Parser, OriginalParams, RetrievedParams, PickParsersWithFallback, OmitParsersWithFallback } from "../parser";
 import { generatePath, NavigateOptions, Location } from "react-router";
 import { createSearchParams } from "./helpers";
+import { useMemo, useCallback } from "react";
 
 type RouteWithChildren<
     TChildren,
@@ -45,6 +46,13 @@ type OutParams<TKey extends string, TPathParsers> = PartialByKey<
 interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
     path: `/${TPath}`;
     relativePath: PathWithoutIntermediateStars<TPath>;
+    storeParams: (params: InParams<ExtractRouteParams<TPath>, TPathParsers>) => Record<string, string>;
+    storeSearchParams: (params: InSearchParams<TSearchParsers>) => URLSearchParams;
+    storeHash: (hash: THash[number]) => THash[number];
+    buildPath: (params: InParams<ExtractRouteParams<TPath>, TPathParsers>) => string;
+    buildRelativePath: (params: InParams<ExtractRouteParams<TPath>, TPathParsers>) => string;
+    buildSearch: (params: InSearchParams<TSearchParsers>) => string;
+    buildHash: (hash: THash[number]) => string;
     buildUrl: (
         params: InParams<ExtractRouteParams<TPath>, TPathParsers>,
         searchParams?: InSearchParams<TSearchParsers>,
@@ -60,15 +68,16 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
     ) => OutParams<ExtractRouteParams<SanitizedPath<TPath>>, TPathParsers>;
     retrieveSearchParams: (searchParams: URLSearchParams) => OutSearchParams<TSearchParsers>;
     retrieveHash: (location: Location) => THash[number] | undefined;
+    useParams: (
+        params: Record<string, string | undefined>
+    ) => OutParams<ExtractRouteParams<SanitizedPath<TPath>>, TPathParsers>;
     useSearchParams: (
-        hookResult: readonly [
-            URLSearchParams,
-            (params: Record<string, string | string[]>, options?: NavigateOptions) => void
-        ]
+        hookResult: readonly [URLSearchParams, (params: URLSearchParams, options?: NavigateOptions) => void]
     ) => [
         OutSearchParams<TSearchParsers>,
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
     ];
+    useHash: (location: Location) => THash[number] | undefined;
     _originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash>;
     _originalPath: TPath;
 }
@@ -178,60 +187,121 @@ function createRoute<
     options: RouteOptions<TPathParsers, TSearchParsers, THash>
 ): Route<TPath, TPathParsers, TSearchParsers, THash> {
     const keys = getKeys(path);
-    const pathWithoutIntermediateStars = removeIntermediateStars(path);
+    const relativePath = removeIntermediateStars(path);
 
-    function buildPath(
-        params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">
-    ) {
-        const storedPathParams = storePathParams(keys, params, options.params);
-        return generatePath(pathWithoutIntermediateStars, storedPathParams);
+    function storeParams(params: InParams<ExtractRouteParams<TPath>, TPathParsers>) {
+        return storeParamsWithParsers(keys, params, options.params);
     }
 
-    function buildSearch(params?: Partial<OriginalParams<TSearchParsers>>) {
-        const storedSearchParams = storeSearchParams(params, options.searchParams);
-        const searchString = createSearchParams(storedSearchParams).toString();
+    function storeSearchParams(params: InSearchParams<TSearchParsers>) {
+        return createSearchParams(storeSearchParamsWithParsers(params, options.searchParams));
+    }
+
+    function storeHash(hash: THash[number]) {
+        return hash;
+    }
+
+    function buildRelativePath(params: InParams<ExtractRouteParams<TPath>, TPathParsers>) {
+        return generatePath(relativePath, storeParams(params));
+    }
+
+    function buildPath(params: InParams<ExtractRouteParams<TPath>, TPathParsers>) {
+        return `/${buildRelativePath(params)}`;
+    }
+
+    function buildSearch(params: InSearchParams<TSearchParsers>) {
+        const searchString = storeSearchParams(params).toString();
 
         return searchString ? `?${searchString}` : "";
     }
 
-    function buildHash(hash?: THash[number]) {
-        const storedHash = storeHash(hash, options.hash);
+    function buildHash(hash: THash[number]) {
+        const storedHash = storeHash(hash);
 
         return storedHash !== undefined ? `#${storedHash}` : "";
+    }
+
+    function buildRelativeUrl(
+        params: InParams<ExtractRouteParams<TPath>, TPathParsers>,
+        searchParams?: InSearchParams<TSearchParsers>,
+        hash?: THash[number]
+    ) {
+        return `${buildRelativePath(params)}${searchParams !== undefined ? buildSearch(searchParams) : ""}${
+            hash !== undefined ? buildHash(hash) : ""
+        }`;
+    }
+
+    function buildUrl(
+        params: InParams<ExtractRouteParams<TPath>, TPathParsers>,
+        searchParams?: InSearchParams<TSearchParsers>,
+        hash?: THash[number]
+    ) {
+        return `/${buildRelativeUrl(params, searchParams, hash)}`;
+    }
+
+    function retrieveParams(params: Record<string, string | undefined>) {
+        return retrieveParamsWithParsers(keys, params, options.params);
+    }
+
+    function retrieveSearchParams(params: URLSearchParams) {
+        return retrieveSearchParamsWithParsers(params, options.searchParams);
+    }
+
+    function retrieveHash(location: Location) {
+        return retrieveHashWithHashValues(location.hash, options.hash);
+    }
+
+    function useParams(params: Record<string, string | undefined>) {
+        return useMemo(() => retrieveParams(params), [params]);
+    }
+
+    function useSearchParams([urlSearchParams, setUrlSearchParams]: readonly [
+        URLSearchParams,
+        (params: URLSearchParams, options?: NavigateOptions) => void
+    ]): [
+        OutSearchParams<TSearchParsers>,
+        (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
+    ] {
+        const searchParams = useMemo(() => retrieveSearchParams(urlSearchParams), [urlSearchParams]);
+
+        const setSearchParams = useCallback(
+            (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => {
+                setUrlSearchParams(storeSearchParams(params), navigateOptions);
+            },
+            [setUrlSearchParams]
+        );
+
+        return [searchParams, setSearchParams];
+    }
+
+    function useHash(location: Location) {
+        return useMemo(() => retrieveHashWithHashValues(location.hash, options.hash), [location.hash]);
     }
 
     return {
         _originalOptions: options,
         _originalPath: path,
-        relativePath: pathWithoutIntermediateStars,
+        relativePath,
         path: `/${path}`,
-        buildUrl: (params, searchParams, hash) => {
-            return `/${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
-        },
-        buildRelativeUrl: (params, searchParams, hash) => {
-            return `${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
-        },
-        retrieveParams: (params) => {
-            return retrieveParams(keys, params, options.params);
-        },
-        retrieveSearchParams: (params) => {
-            return retrieveSearchParams(params, options.searchParams);
-        },
-        retrieveHash: (location: Location) => {
-            return retrieveHash(location.hash, options.hash);
-        },
-        useSearchParams: ([urlSearchParams, setUrlSearchParams]) => {
-            return [
-                retrieveSearchParams(urlSearchParams, options.searchParams),
-                (params?: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => {
-                    setUrlSearchParams(storeSearchParams(params, options.searchParams), navigateOptions);
-                },
-            ];
-        },
+        storeParams,
+        storeSearchParams,
+        storeHash,
+        buildPath,
+        buildRelativePath,
+        buildSearch,
+        buildHash,
+        buildUrl,
+        buildRelativeUrl,
+        retrieveParams,
+        retrieveSearchParams,
+        retrieveHash,
+        useParams,
+        useSearchParams,
+        useHash,
     };
 }
 
-function storePathParams(
+function storeParamsWithParsers(
     keys: string[],
     params: Record<string, unknown>,
     parsers?: Partial<Record<string, Parser<unknown, string>>>
@@ -250,7 +320,7 @@ function storePathParams(
     ) as Record<string, string>;
 }
 
-function storeSearchParams(
+function storeSearchParamsWithParsers(
     params?: Record<string, unknown>,
     parsers?: Partial<Record<string, Parser<unknown, string | string[]>>>
 ): Record<string, string | string[]> {
@@ -265,14 +335,6 @@ function storeSearchParams(
     ) as Record<string, string | string[]>;
 }
 
-function storeHash(hash?: string, hashValues?: string[]): string | undefined {
-    if (hash && (hashValues?.includes(hash) || hashValues?.length === 0)) {
-        return hash;
-    }
-
-    return undefined;
-}
-
 function mergeHashValues<T, U>(firstHash?: T[], secondHash?: U[]): (T | U)[] | undefined {
     if (!firstHash && !secondHash) {
         return undefined;
@@ -285,7 +347,7 @@ function mergeHashValues<T, U>(firstHash?: T[], secondHash?: U[]): (T | U)[] | u
     return [...(firstHash ?? []), ...(secondHash ?? [])];
 }
 
-function retrieveParams<TKey extends string, TPathParsers extends Partial<Record<TKey, Parser<unknown>>>>(
+function retrieveParamsWithParsers<TKey extends string, TPathParsers extends Partial<Record<TKey, Parser<unknown>>>>(
     keys: TKey[],
     pathParams: Record<string, string | undefined>,
     parsers?: TPathParsers
@@ -313,10 +375,9 @@ function retrieveParams<TKey extends string, TPathParsers extends Partial<Record
     return result as OutParams<TKey, TPathParsers>;
 }
 
-function retrieveSearchParams<TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>>(
-    searchParams: URLSearchParams,
-    parsers?: TSearchParsers
-): Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>> {
+function retrieveSearchParamsWithParsers<
+    TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>
+>(searchParams: URLSearchParams, parsers?: TSearchParsers): OutSearchParams<TSearchParsers> {
     if (!parsers) {
         return {} as Partial<RetrievedParams<TSearchParsers>> &
             RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
@@ -341,7 +402,7 @@ function retrieveSearchParams<TSearchParsers extends Partial<Record<string, Pars
     ) as Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
 }
 
-function retrieveHash(hash?: string, hashValues?: string[]): string | undefined {
+function retrieveHashWithHashValues(hash?: string, hashValues?: string[]): string | undefined {
     if (hashValues?.length === 0 || (hash && hashValues?.includes(hash))) {
         return hash?.substring(1, hash?.length);
     }
