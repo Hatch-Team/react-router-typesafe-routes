@@ -73,7 +73,7 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
     ) => OutParams<ExtractRouteParams<SanitizedPath<TPath>>, TPathParsers>;
     useSearchParams: (
         hookResult: readonly [URLSearchParams, (params: URLSearchParams, options?: NavigateOptions) => void]
-    ) => [
+    ) => readonly [
         OutSearchParams<TSearchParsers>,
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
     ];
