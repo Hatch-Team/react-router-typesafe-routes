@@ -75,7 +75,7 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
         hookResult: readonly [URLSearchParams, (params: URLSearchParams, options?: NavigateOptions) => void]
     ) => readonly [
         OutSearchParams<TSearchParsers>,
-        (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
+        (params: InSearchParams<TSearchParsers>, navigateOptions?: NavigateOptions) => void
     ];
     useHash: (location: Location) => THash[number] | undefined;
     _originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash>;
@@ -260,12 +260,12 @@ function createRoute<
         (params: URLSearchParams, options?: NavigateOptions) => void
     ]): [
         OutSearchParams<TSearchParsers>,
-        (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
+        (params: InSearchParams<TSearchParsers>, navigateOptions?: NavigateOptions) => void
     ] {
         const searchParams = useMemo(() => retrieveSearchParams(urlSearchParams), [urlSearchParams]);
 
         const setSearchParams = useCallback(
-            (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => {
+            (params: InSearchParams<TSearchParsers>, navigateOptions?: NavigateOptions) => {
                 setUrlSearchParams(storeSearchParams(params), navigateOptions);
             },
             [setUrlSearchParams]
@@ -304,13 +304,13 @@ function createRoute<
 function storeParamsWithParsers(
     keys: string[],
     params: Record<string, unknown>,
-    parsers?: Partial<Record<string, Parser<unknown, string>>>
+    parsers?: Partial<Record<string, Parser<unknown>>>
 ): Record<string, string> {
     return Object.fromEntries(
         Object.entries(params)
             .map(([key, value]) => [
                 key,
-                keys.includes(key) && parsers?.[key]
+                keys.includes(key) && parsers?.[key] && value !== undefined
                     ? parsers[key]?.store(value)
                     : typeof value === "string"
                     ? value
@@ -328,7 +328,10 @@ function storeSearchParamsWithParsers(
         params
             ? Object.fromEntries(
                   Object.entries(params)
-                      .map(([key, value]) => [key, parsers?.[key] ? parsers[key]?.store(value) : null])
+                      .map(([key, value]) => [
+                          key,
+                          parsers?.[key] && value !== undefined ? parsers[key]?.store(value) : null,
+                      ])
                       .filter(([, value]) => value !== null)
               )
             : {}
@@ -379,8 +382,7 @@ function retrieveSearchParamsWithParsers<
     TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>
 >(searchParams: URLSearchParams, parsers?: TSearchParsers): OutSearchParams<TSearchParsers> {
     if (!parsers) {
-        return {} as Partial<RetrievedParams<TSearchParsers>> &
-            RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
+        return {} as OutSearchParams<TSearchParsers>;
     }
 
     return Object.fromEntries(
@@ -399,7 +401,7 @@ function retrieveSearchParamsWithParsers<
                 return [key, nextValue];
             })
             .filter(([, value]) => value !== null)
-    ) as Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
+    ) as OutSearchParams<TSearchParsers>;
 }
 
 function retrieveHashWithHashValues(hash?: string, hashValues?: string[]): string | undefined {
