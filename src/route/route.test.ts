@@ -251,84 +251,84 @@ it("allows mixing explicit and implicit hash params across multiple routes", () 
     expect(TEST_ROUTE.CHILD.GRANDCHILD.buildUrl({}, {}, "anything")).toEqual("/test/child/grand#anything");
 });
 
-it.skip("allows implicit path params parsing", () => {
+it("allows implicit path params parsing", () => {
     const GRANDCHILD = route("grand/:id", {});
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({})).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({})).toEqual({});
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.useParams({ id: "1" })).toEqual({ id: "1" });
+    expect(TEST_ROUTE.retrieveParams({})).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({})).toEqual({});
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ id: "1" })).toEqual({ id: "1" });
 });
 
-it.skip("allows explicit path params parsing", () => {
+it("allows explicit path params parsing", () => {
     const GRANDCHILD = route("grand/:id", { params: { id: numberParser } });
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({ id: "1" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({ id: "1" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.useParams({ id: "1" })).toEqual({ id: 1 });
+    expect(TEST_ROUTE.retrieveParams({ id: "1" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ id: "1" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ id: "1" })).toEqual({ id: 1 });
 });
 
-it.skip("allows to mix path params parsing across multiple routes", () => {
+it("allows to mix path params parsing across multiple routes", () => {
     const GRANDCHILD = route("grand/:id", { params: { id: numberParser } });
     const CHILD = route("child/:childId", { params: { childId: numberParser } }, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({ id: "1", childId: "2" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({ id: "1", childId: "2" })).toEqual({ childId: 2 });
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.useParams({ id: "1", childId: "2" })).toEqual({ id: 1, childId: 2 });
+    expect(TEST_ROUTE.retrieveParams({ id: "1", childId: "2" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ id: "1", childId: "2" })).toEqual({ childId: 2 });
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ id: "1", childId: "2" })).toEqual({ id: 1, childId: 2 });
 });
 
-it.skip("throws if required path params are invalid", () => {
+it("throws if required path params are invalid", () => {
     const GRANDCHILD = route("grand/:id", { params: { id: numberParser } });
     const CHILD = route("child/:childId", { params: { childId: numberParser } }, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({ id: "foo", childId: "2" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({ id: "foo", childId: "2" })).toEqual({ childId: 2 });
-    expect(() => TEST_ROUTE.CHILD.GRANDCHILD.useParams({ id: "foo", childId: "2" })).toThrow();
+    expect(TEST_ROUTE.retrieveParams({ id: "foo", childId: "2" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ id: "foo", childId: "2" })).toEqual({ childId: 2 });
+    expect(() => TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ id: "foo", childId: "2" })).toThrow();
 });
 
-it.skip("allows implicit star path param parsing", () => {
+it("allows implicit star path param parsing", () => {
     const GRANDCHILD = route("grand/*", {});
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({ "*": "foo/bar" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({ "*": "foo/bar" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.useParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
+    expect(TEST_ROUTE.retrieveParams({ "*": "foo/bar" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "foo/bar" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
 });
 
-it.skip("allows explicit star path param parsing", () => {
+it("allows explicit star path param parsing", () => {
     const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({ "*": "1" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({ "*": "1" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.useParams({ "*": "1" })).toEqual({ "*": 1 });
+    expect(TEST_ROUTE.retrieveParams({ "*": "1" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "1" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ "*": "1" })).toEqual({ "*": 1 });
 });
 
-it.skip("silently omits invalid star path param", () => {
+it("silently omits invalid star path param", () => {
     const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({ "*": "foo" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({ "*": "foo" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.useParams({ "*": "foo" })).toEqual({});
+    expect(TEST_ROUTE.retrieveParams({ "*": "foo" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "foo" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ "*": "foo" })).toEqual({});
 });
 
-it.skip("allows intermediate star param parsing", () => {
+it("allows intermediate star param parsing", () => {
     const GRANDCHILD = route("grand", {});
     const CHILD = route("child/*", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
-    expect(TEST_ROUTE.useParams({ "*": "foo/bar" })).toEqual({});
-    expect(TEST_ROUTE.CHILD.useParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.useParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
+    expect(TEST_ROUTE.retrieveParams({ "*": "foo/bar" })).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
 });
 
 it("allows search params parsing", () => {
