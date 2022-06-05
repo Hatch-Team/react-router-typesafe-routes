@@ -39,7 +39,7 @@ type InParams<TKey extends string, TPathParsers> = PartialByKey<
 >;
 type OutParams<TKey extends string, TPathParsers> = PartialByKey<
     PickWithFallback<RetrievedParams<TPathParsers>, TKey, string>,
-    keyof OmitParsersWithFallback<TPathParsers> extends "*" ? "*" : never
+    "*" extends keyof OmitParsersWithFallback<TPathParsers> ? "*" : ""
 >;
 
 interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {

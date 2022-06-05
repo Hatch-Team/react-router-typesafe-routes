@@ -2,6 +2,7 @@ import { route } from "./route";
 import { numberParser, booleanParser, arrayOfParser, stringParser } from "../parser";
 import { hashValues } from "../hashValues";
 import { Location } from "react-router";
+import { assert, IsExact } from "conditional-type-checks";
 
 it("provides absolute path", () => {
     const GRANDCHILD = route("grand");
@@ -296,6 +297,10 @@ it("allows implicit star path param parsing", () => {
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
 
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams>, { "*": string }>>(true);
+
     expect(TEST_ROUTE.retrieveParams({ "*": "foo/bar" })).toEqual({});
     expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "foo/bar" })).toEqual({});
     expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams({ "*": "foo/bar" })).toEqual({ "*": "foo/bar" });
@@ -305,6 +310,10 @@ it("allows explicit star path param parsing", () => {
     const GRANDCHILD = route("grand/*", { params: { "*": numberParser } });
     const CHILD = route("child", {}, { GRANDCHILD });
     const TEST_ROUTE = route("test", {}, { CHILD });
+
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.retrieveParams>, Record<never, never>>>(true);
+    assert<IsExact<ReturnType<typeof TEST_ROUTE.CHILD.GRANDCHILD.retrieveParams>, { "*"?: number }>>(true);
 
     expect(TEST_ROUTE.retrieveParams({ "*": "1" })).toEqual({});
     expect(TEST_ROUTE.CHILD.retrieveParams({ "*": "1" })).toEqual({});
