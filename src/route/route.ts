@@ -1,4 +1,4 @@
-import { Parser, OriginalParams, RetrievedParams, PickParsersWithFallback } from "../parser";
+import { Parser, OriginalParams, RetrievedParams, PickParsersWithFallback, OmitParsersWithFallback } from "../parser";
 import { generatePath, NavigateOptions, Location } from "react-router";
 import { createSearchParams } from "./helpers";
 
@@ -29,32 +29,42 @@ type DecoratedChildren<TChildren, TPath extends string, TPathParsers, TSearchPar
         : TChildren[TKey];
 };
 
+type InSearchParams<TSearchParsers> = Partial<OriginalParams<TSearchParsers>>;
+type OutSearchParams<TSearchParsers> = Partial<RetrievedParams<TSearchParsers>> &
+    RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
+
+type InParams<TKey extends string, TPathParsers> = PartialByKey<
+    PickWithFallback<OriginalParams<TPathParsers>, TKey, string>,
+    "*"
+>;
+type OutParams<TKey extends string, TPathParsers> = PartialByKey<
+    PickWithFallback<RetrievedParams<TPathParsers>, TKey, string>,
+    keyof OmitParsersWithFallback<TPathParsers> extends "*" ? "*" : never
+>;
+
 interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extends string[]> {
     path: `/${TPath}`;
     relativePath: PathWithoutIntermediateStars<TPath>;
     buildUrl: (
-        params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">,
-        searchParams?: Partial<OriginalParams<TSearchParsers>>,
+        params: InParams<ExtractRouteParams<TPath>, TPathParsers>,
+        searchParams?: InSearchParams<TSearchParsers>,
         hash?: THash[number]
     ) => string;
     buildRelativeUrl: (
-        params: PartialByKey<PickWithFallback<OriginalParams<TPathParsers>, ExtractRouteParams<TPath>, string>, "*">,
-        searchParams?: Partial<OriginalParams<TSearchParsers>>,
+        params: InParams<ExtractRouteParams<TPath>, TPathParsers>,
+        searchParams?: InSearchParams<TSearchParsers>,
         hash?: THash[number]
     ) => string;
     retrieveParams: (
         params: Record<string, string | undefined>
-    ) => PartialByKey<
-        PickWithFallback<RetrievedParams<TPathParsers>, ExtractRouteParams<SanitizedPath<TPath>>, string>,
-        "*"
-    >;
+    ) => OutParams<ExtractRouteParams<SanitizedPath<TPath>>, TPathParsers>;
     parseSearch: (
         hookResult: readonly [
             URLSearchParams,
             (params: Record<string, string | string[]>, options?: NavigateOptions) => void
         ]
     ) => [
-        Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>,
+        OutSearchParams<TSearchParsers>,
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
     ];
     parseHash: (location: Location) => THash[number] | undefined;
@@ -275,8 +285,8 @@ function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey
     keys: TKey[],
     pathParams: Record<string, string | undefined>,
     parsers?: TPathParsers
-): PartialByKey<PickWithFallback<RetrievedParams<TPathParsers>, TKey, string>, "*"> {
-    if (keys.some((key) => typeof pathParams[key] !== "string" && key !== "*")) {
+): OutParams<TKey, TPathParsers> {
+    if (keys.some((key) => typeof pathParams[key] !== "string")) {
         throw new Error("Insufficient params");
     }
 
@@ -296,7 +306,7 @@ function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey
         }
     });
 
-    return result as PartialByKey<PickWithFallback<RetrievedParams<TPathParsers>, TKey, string>, "*">;
+    return result as OutParams<TKey, TPathParsers>;
 }
 
 function parseSearch<TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>>(

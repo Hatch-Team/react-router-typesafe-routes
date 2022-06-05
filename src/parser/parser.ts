@@ -13,6 +13,7 @@ type OriginalParams<TParsers> = Params<TParsers, true>;
 type RetrievedParams<TParsers> = Params<TParsers>;
 
 type PickParsersWithFallback<T> = Pick<T, KeysWithFallback<T>>;
+type OmitParsersWithFallback<T> = Omit<T, KeysWithFallback<T>>;
 
 type KeysWithFallback<T> = {
     [TKey in keyof T]: KeyWithFallback<T[TKey], TKey>;
@@ -30,4 +31,11 @@ type ParserType<T, TUseOriginal extends boolean> = T extends Parser<infer TOrigi
         : TRetrieved
     : never;
 
-export { Parser, ParserWithFallback, OriginalParams, RetrievedParams, PickParsersWithFallback };
+export {
+    Parser,
+    ParserWithFallback,
+    OriginalParams,
+    RetrievedParams,
+    PickParsersWithFallback,
+    OmitParsersWithFallback,
+};
