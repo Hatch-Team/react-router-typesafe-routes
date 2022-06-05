@@ -97,11 +97,6 @@ interface RouteOptions<TPathParsers, TSearchParsers, THash> {
     hash?: THash;
 }
 
-interface RouteOptionsWithChildren<TChildren, TPathParsers, TSearchParsers, THash>
-    extends RouteOptions<TPathParsers, TSearchParsers, THash> {
-    children?: TChildren;
-}
-
 function route<
     TChildren,
     TPath extends string = string,
@@ -112,9 +107,10 @@ function route<
     THash extends string[] = never[]
 >(
     path: SanitizedPath<TPath>,
-    options: RouteOptionsWithChildren<SanitizedChildren<TChildren>, TPathParsers, TSearchParsers, THash> = {}
+    options: RouteOptions<TPathParsers, TSearchParsers, THash> = {},
+    children?: SanitizedChildren<TChildren>
 ): RouteWithChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash> {
-    const decoratedChildren = decorateChildren(path, options);
+    const decoratedChildren = decorateChildren(path, options, children);
 
     return {
         ...decoratedChildren,
@@ -124,14 +120,15 @@ function route<
 
 function decorateChildren<TPath extends string, TPathParsers, TSearchParsers, THash extends string[], TChildren>(
     path: SanitizedPath<TPath>,
-    options: RouteOptionsWithChildren<TChildren, TPathParsers, TSearchParsers, THash>
+    options: RouteOptions<TPathParsers, TSearchParsers, THash>,
+    children?: TChildren
 ): DecoratedChildren<TChildren, TPath, TPathParsers, TSearchParsers, THash> {
     return Object.fromEntries(
-        Object.entries(options.children ?? {}).map(([key, value]) => [
+        Object.entries(children ?? {}).map(([key, value]) => [
             key,
             isRoute(value)
                 ? {
-                      ...decorateChildren(path, { ...options, children: value }),
+                      ...decorateChildren(path, options, value),
                       ...createRoute(
                           path === ""
                               ? value._originalPath
