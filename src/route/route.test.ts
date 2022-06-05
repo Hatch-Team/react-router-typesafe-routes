@@ -492,11 +492,9 @@ it("allows search params parsing", () => {
     testSearchParams.append("arr", "2");
     testSearchParams.set("foo", "foo");
 
-    /* eslint-disable @typescript-eslint/no-empty-function */
-    expect(TEST_ROUTE.parseSearch([testSearchParams, () => {}])[0]).toEqual({});
-    expect(TEST_ROUTE.CHILD.parseSearch([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2], foo: "foo" });
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.parseSearch([testSearchParams, () => {}])[0]).toEqual({ arr: [1, 2] });
-    /* eslint-enable */
+    expect(TEST_ROUTE.retrieveSearchParams(testSearchParams)).toEqual({});
+    expect(TEST_ROUTE.CHILD.retrieveSearchParams(testSearchParams)).toEqual({ arr: [1, 2], foo: "foo" });
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveSearchParams(testSearchParams)).toEqual({ arr: [1, 2] });
 });
 
 it("allows hash parsing", () => {
@@ -512,7 +510,7 @@ it("allows hash parsing", () => {
 
     const testLocation = { hash: "#baz" } as Location;
 
-    expect(TEST_ROUTE.parseHash(testLocation)).toEqual(undefined);
-    expect(TEST_ROUTE.CHILD.parseHash(testLocation)).toEqual(undefined);
-    expect(TEST_ROUTE.CHILD.GRANDCHILD.parseHash(testLocation)).toEqual("baz");
+    expect(TEST_ROUTE.retrieveHash(testLocation)).toEqual(undefined);
+    expect(TEST_ROUTE.CHILD.retrieveHash(testLocation)).toEqual(undefined);
+    expect(TEST_ROUTE.CHILD.GRANDCHILD.retrieveHash(testLocation)).toEqual("baz");
 });

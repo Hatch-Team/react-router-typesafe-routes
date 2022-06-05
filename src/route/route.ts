@@ -58,7 +58,9 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
     retrieveParams: (
         params: Record<string, string | undefined>
     ) => OutParams<ExtractRouteParams<SanitizedPath<TPath>>, TPathParsers>;
-    parseSearch: (
+    retrieveSearchParams: (searchParams: URLSearchParams) => OutSearchParams<TSearchParsers>;
+    retrieveHash: (location: Location) => THash[number] | undefined;
+    useSearchParams: (
         hookResult: readonly [
             URLSearchParams,
             (params: Record<string, string | string[]>, options?: NavigateOptions) => void
@@ -67,7 +69,6 @@ interface Route<TPath extends string, TPathParsers, TSearchParsers, THash extend
         OutSearchParams<TSearchParsers>,
         (params: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => void
     ];
-    parseHash: (location: Location) => THash[number] | undefined;
     _originalOptions: RouteOptions<TPathParsers, TSearchParsers, THash>;
     _originalPath: TPath;
 }
@@ -211,18 +212,21 @@ function createRoute<
             return `${buildPath(params)}${buildSearch(searchParams)}${buildHash(hash)}`;
         },
         retrieveParams: (params) => {
-            return parsePath(keys, params, options.params);
+            return retrieveParams(keys, params, options.params);
         },
-        parseSearch: ([urlSearchParams, setUrlSearchParams]) => {
+        retrieveSearchParams: (params) => {
+            return retrieveSearchParams(params, options.searchParams);
+        },
+        retrieveHash: (location: Location) => {
+            return retrieveHash(location.hash, options.hash);
+        },
+        useSearchParams: ([urlSearchParams, setUrlSearchParams]) => {
             return [
-                parseSearch(urlSearchParams, options.searchParams),
+                retrieveSearchParams(urlSearchParams, options.searchParams),
                 (params?: Partial<OriginalParams<TSearchParsers>>, navigateOptions?: NavigateOptions) => {
                     setUrlSearchParams(storeSearchParams(params, options.searchParams), navigateOptions);
                 },
             ];
-        },
-        parseHash: (location: Location) => {
-            return parseHash(location.hash, options.hash);
         },
     };
 }
@@ -281,7 +285,7 @@ function mergeHashValues<T, U>(firstHash?: T[], secondHash?: U[]): (T | U)[] | u
     return [...(firstHash ?? []), ...(secondHash ?? [])];
 }
 
-function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey, Parser<unknown>>>>(
+function retrieveParams<TKey extends string, TPathParsers extends Partial<Record<TKey, Parser<unknown>>>>(
     keys: TKey[],
     pathParams: Record<string, string | undefined>,
     parsers?: TPathParsers
@@ -309,7 +313,7 @@ function parsePath<TKey extends string, TPathParsers extends Partial<Record<TKey
     return result as OutParams<TKey, TPathParsers>;
 }
 
-function parseSearch<TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>>(
+function retrieveSearchParams<TSearchParsers extends Partial<Record<string, Parser<unknown, string | string[]>>>>(
     searchParams: URLSearchParams,
     parsers?: TSearchParsers
 ): Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>> {
@@ -337,7 +341,7 @@ function parseSearch<TSearchParsers extends Partial<Record<string, Parser<unknow
     ) as Partial<RetrievedParams<TSearchParsers>> & RetrievedParams<PickParsersWithFallback<TSearchParsers>>;
 }
 
-function parseHash(hash?: string, hashValues?: string[]): string | undefined {
+function retrieveHash(hash?: string, hashValues?: string[]): string | undefined {
     if (hashValues?.length === 0 || (hash && hashValues?.includes(hash))) {
         return hash?.substring(1, hash?.length);
     }
